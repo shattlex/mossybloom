@@ -59,11 +59,12 @@ export function ProductDetail() {
   const preloadedProductImages = useMemo(() => {
     if (!product) return [];
     const urls = new Set<string>();
-    urls.add(product.image);
     if (product.images && product.images.length > 0) {
       urls.add(product.images[0]);
+    } else {
+      urls.add(product.image);
     }
-    product.sizes.forEach((size) => {
+    product.sizes.slice(0, 2).forEach((size) => {
       if (size.image) {
         urls.add(size.image);
       } else if (size.images && size.images.length > 0) {
@@ -78,7 +79,7 @@ export function ProductDetail() {
   }, [activeImages, product]);
 
   useEffect(() => {
-    activeImages.forEach((url) => {
+    activeImages.slice(0, 1).forEach((url) => {
       const image = new Image();
       image.decoding = 'async';
       image.src = url;
@@ -292,5 +293,7 @@ export function ProductDetail() {
     </div>
   );
 }
+
+
 
 

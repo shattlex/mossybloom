@@ -8,6 +8,15 @@ import { generatedConstructorFlowers } from "./data/generatedContentMedia";
 
 export default function App() {
   useEffect(() => {
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+
+    const isConstrainedNetwork =
+      Boolean(connection?.saveData) ||
+      connection?.effectiveType === "2g" ||
+      connection?.effectiveType === "slow-2g";
+
     const runWhenIdle = (callback: () => void) => {
       if (typeof window === "undefined") return;
       const withIdle = window as Window & {
@@ -27,15 +36,17 @@ export default function App() {
       image.src = url;
     };
 
-    // Warm up critical assets progressively to avoid UI jank.
+    // Warm up only a small subset of images to avoid mobile jank.
     runWhenIdle(() => {
-      getProducts().slice(0, 18).forEach((product) => {
+      if (isConstrainedNetwork) return;
+      getProducts().slice(0, 4).forEach((product) => {
         preloadImage(product.thumbnail || product.image);
       });
     });
 
     runWhenIdle(() => {
-      generatedConstructorFlowers.slice(0, 12).forEach((flower) => {
+      if (isConstrainedNetwork) return;
+      generatedConstructorFlowers.slice(0, 4).forEach((flower) => {
         preloadImage(flower.image.replace("/products/constructor/", "/products/constructor-previews/"));
       });
     });

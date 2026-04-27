@@ -80,8 +80,8 @@ export function Catalog() {
                     <img
                       src={product.thumbnail || product.image}
                       alt={product.name}
-                      loading={index < 6 ? "eager" : "lazy"}
-                      fetchPriority={index < 3 ? "high" : "auto"}
+                      loading={index < 2 ? "eager" : "lazy"}
+                      fetchPriority={index < 1 ? "high" : "auto"}
                       decoding="async"
                       className="object-cover w-full h-full mix-blend-multiply group-hover:scale-105 transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)]"
                     />
@@ -133,3 +133,4 @@ export function Catalog() {
     </div>
   );
 }
+
