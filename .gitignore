@@ -8,3 +8,6 @@ yarn-error.log*
 pnpm-debug.log*
 .DS_Store
 public/receipts/
+public/products/**/*.png
+public/products/**/*.jpg
+public/products/**/*.jpeg
