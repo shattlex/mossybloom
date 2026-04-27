@@ -31,8 +31,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-const EMPTY_CONTENT: CmsContent = {
-  siteName: 'Sara Flowers',
+export const EMPTY_CONTENT: CmsContent = {
+  siteName: 'MossyBloom',
   pages: [],
   media: []
 };
@@ -64,7 +64,7 @@ export function loadCmsContent(): CmsContent {
       : [];
 
     return {
-      siteName: typeof parsed.siteName === 'string' && parsed.siteName.trim() ? parsed.siteName : 'Sara Flowers',
+      siteName: typeof parsed.siteName === 'string' && parsed.siteName.trim() ? parsed.siteName : 'MossyBloom',
       pages,
       media
     };
@@ -91,3 +91,4 @@ export function parsePriceToNumber(value: string | number | undefined): number {
   const numeric = value.replace(/[^\d]/g, '');
   return numeric ? Number(numeric) : 0;
 }
+

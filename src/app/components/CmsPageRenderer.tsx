@@ -1,4 +1,4 @@
-﻿import { Link } from 'react-router';
+import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import { findCmsPage, resolveCmsImage, type CmsBlock } from '../cms/content';
 import { useCmsContent } from '../cms/useCmsContent';
@@ -27,7 +27,7 @@ export function CmsPageRenderer({ slug, fallbackTitle, fallbackBlocks = [] }: Cm
   const blocks = page?.blocks?.length && !isPlaceholder(page.blocks) ? page.blocks : fallbackBlocks;
 
   return (
-    <div className="min-h-screen pt-40 pb-20">
+    <div className="min-h-screen pb-16 md:pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
           <h1 className="text-5xl sm:text-6xl font-light italic" style={{ fontFamily: 'var(--font-script)' }}>
@@ -146,3 +146,4 @@ export function CmsPageRenderer({ slug, fallbackTitle, fallbackBlocks = [] }: Cm
     </div>
   );
 }
+

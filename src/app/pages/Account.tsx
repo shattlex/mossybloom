@@ -16,7 +16,7 @@ import {
   type UserProfile
 } from '../api/client';
 
-type AuthMode = 'login' | 'register' | 'sms';
+type AuthMode = 'login' | 'register';
 
 const statusColor: Record<string, string> = {
   received: 'bg-blue-100 text-blue-700',
@@ -234,9 +234,6 @@ export function Account() {
               <button onClick={() => setMode('register')} className={`px-4 py-2 rounded-full ${mode === 'register' ? 'bg-primary text-white' : 'bg-gray-100'}`}>
                 Регистрация
               </button>
-              <button onClick={() => setMode('sms')} className={`px-4 py-2 rounded-full ${mode === 'sms' ? 'bg-primary text-white' : 'bg-gray-100'}`}>
-                По SMS
-              </button>
             </div>
 
             {mode === 'login' && (
@@ -319,74 +316,6 @@ export function Account() {
                   Создать аккаунт
                 </button>
               </form>
-            )}
-
-            {mode === 'sms' && (
-              <div className="space-y-3">
-                <form onSubmit={handleSmsRequest} className="space-y-3">
-                  <input
-                    required
-                    placeholder="Телефон +7..."
-                    value={smsForm.phone}
-                    onChange={(e) => setSmsForm({ ...smsForm, phone: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3"
-                  />
-                  <label className="flex items-start gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={smsConsents.personalData}
-                      onChange={(e) => setSmsConsents((prev) => ({ ...prev, personalData: e.target.checked }))}
-                      className="mt-1"
-                    />
-                    <span>
-                      Я принимаю <Link to="/privacy" className="text-primary hover:underline">Политику конфиденциальности</Link> и <Link to="/consent" className="text-primary hover:underline">согласие на обработку ПДн</Link>.
-                    </span>
-                  </label>
-                  <label className="flex items-start gap-2 text-sm text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={smsConsents.terms}
-                      onChange={(e) => setSmsConsents((prev) => ({ ...prev, terms: e.target.checked }))}
-                      className="mt-1"
-                    />
-                    <span>
-                      Я принимаю условия <Link to="/terms" className="text-primary hover:underline">Пользовательского соглашения</Link>.
-                    </span>
-                  </label>
-                  <button
-                    type="submit"
-                    disabled={!smsConsents.personalData || !smsConsents.terms}
-                    className="w-full border border-primary text-primary rounded-xl py-3 disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    Получить код
-                  </button>
-                </form>
-
-                <form onSubmit={handleSmsVerify} className="space-y-3">
-                  <input
-                    placeholder="Имя (если новый клиент)"
-                    value={smsForm.name}
-                    onChange={(e) => setSmsForm({ ...smsForm, name: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3"
-                  />
-                  <input
-                    required
-                    placeholder="Код из SMS"
-                    value={smsForm.code}
-                    onChange={(e) => setSmsForm({ ...smsForm, code: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!smsConsents.personalData || !smsConsents.terms}
-                    className="w-full bg-primary text-white rounded-xl py-3 disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    Подтвердить код
-                  </button>
-                </form>
-
-                {devCode && <p className="text-xs text-gray-500">DEV-код: {devCode}</p>}
-              </div>
             )}
 
             <div className="my-6 border-t border-gray-200" />

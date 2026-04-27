@@ -1,4 +1,4 @@
-﻿# Data Model
+# Data Model
 
 Корневой объект:
 

@@ -1,4 +1,15 @@
-﻿import { CmsContent, findCmsPage, loadCmsContent, parsePriceToNumber, resolveCmsImage } from '../cms/content';
+import { CmsContent } from '../cms/content';
+import { products as legacyCatalogProducts } from '../data';
+import { generatedProductMedia } from './generatedContentMedia';
+
+export interface ProductSize {
+  value: string;
+  label: string;
+  price: number;
+  available?: boolean;
+  image?: string;
+  images?: string[];
+}
 
 export interface Product {
   id: string;
@@ -6,6 +17,8 @@ export interface Product {
   price: number;
   oldPrice?: number;
   image: string;
+  thumbnail?: string;
+  images?: string[];
   category: string;
   color?: string[];
   rating: number;
@@ -13,234 +26,141 @@ export interface Product {
   deliveryTime: string;
   description: string;
   composition: string[];
-  sizes: { value: string; label: string; price: number }[];
+  sizes: ProductSize[];
 }
 
-const baseProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Букет "Нежность пионов"',
-    price: 7500,
-    oldPrice: 9000,
-    image: 'https://images.unsplash.com/photo-1773169206110-103f891dda08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Пионы',
-    color: ['Розовый'],
-    rating: 4.9,
-    reviewsCount: 127,
-    deliveryTime: '60 минут',
-    description: 'Объемный букет из пионов в нежных оттенках с фирменной упаковкой.',
-    composition: ['Пионы — 15 шт', 'Эвкалипт', 'Лента'],
-    sizes: [
-      { value: 'S', label: 'Малый', price: 5500 },
-      { value: 'M', label: 'Средний', price: 7500 },
-      { value: 'L', label: 'Большой', price: 12000 }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Букет "Классические розы"',
-    price: 4900,
-    image: 'https://images.unsplash.com/photo-1758827644723-f0acdb36bd85?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Розы',
-    color: ['Красный'],
-    rating: 5,
-    reviewsCount: 243,
-    deliveryTime: '45 минут',
-    description: 'Классическая композиция из свежих красных роз.',
-    composition: ['Розы — 25 шт', 'Оформление', 'Лента'],
-    sizes: [
-      { value: 'S', label: '11 роз', price: 2900 },
-      { value: 'M', label: '25 роз', price: 4900 },
-      { value: 'L', label: '51 роза', price: 8900 }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Букет "Белоснежный"',
-    price: 6200,
-    image: 'https://images.unsplash.com/photo-1766734867043-92b9b2f25ffa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Розы',
-    color: ['Белый'],
-    rating: 4.8,
-    reviewsCount: 156,
-    deliveryTime: '60 минут',
-    description: 'Элегантный букет белых роз для любого повода.',
-    composition: ['Белые розы — 21 шт', 'Эвкалипт', 'Фирменная упаковка'],
-    sizes: [
-      { value: 'S', label: '11 роз', price: 3500 },
-      { value: 'M', label: '21 роза', price: 6200 },
-      { value: 'L', label: '35 роз', price: 9800 }
-    ]
-  },
-  {
-    id: '4',
-    name: 'Букет "Весенние тюльпаны"',
-    price: 3900,
-    image: 'https://images.unsplash.com/photo-1580403071102-c23c5267d060?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Тюльпаны',
-    color: ['Розовый'],
-    rating: 4.7,
-    reviewsCount: 98,
-    deliveryTime: '45 минут',
-    description: 'Яркий весенний букет тюльпанов в минималистичной упаковке.',
-    composition: ['Тюльпаны — 35 шт', 'Лента', 'Крафт-бумага'],
-    sizes: [
-      { value: 'S', label: '15 шт', price: 2200 },
-      { value: 'M', label: '35 шт', price: 3900 },
-      { value: 'L', label: '51 шт', price: 5900 }
-    ]
-  },
-  {
-    id: '5',
-    name: 'Букет "Орхидеи премиум"',
-    price: 8900,
-    oldPrice: 11000,
-    image: 'https://images.unsplash.com/photo-1768368052646-a6185df478c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Орхидеи',
-    color: ['Белый'],
-    rating: 5,
-    reviewsCount: 87,
-    deliveryTime: '90 минут',
-    description: 'Премиальная композиция из орхидей для торжественных событий.',
-    composition: ['Орхидеи — 5 веток', 'Декор', 'Фирменная коробка'],
-    sizes: [
-      { value: 'S', label: '3 ветки', price: 6500 },
-      { value: 'M', label: '5 веток', price: 8900 },
-      { value: 'L', label: '7 веток', price: 12900 }
-    ]
-  },
-  {
-    id: '6',
-    name: 'Букет "Солнечный"',
-    price: 4200,
-    image: 'https://images.unsplash.com/photo-1752765579971-b9949096c5d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Подсолнухи',
-    color: ['Желтый'],
-    rating: 4.9,
-    reviewsCount: 134,
-    deliveryTime: '45 минут',
-    description: 'Теплый и яркий букет подсолнухов для поднятия настроения.',
-    composition: ['Подсолнухи — 11 шт', 'Зелень', 'Лента'],
-    sizes: [
-      { value: 'S', label: '5 шт', price: 2500 },
-      { value: 'M', label: '11 шт', price: 4200 },
-      { value: 'L', label: '15 шт', price: 6200 }
-    ]
-  },
-  {
-    id: '7',
-    name: 'Букет "Голубая гортензия"',
-    price: 5800,
-    image: 'https://images.unsplash.com/photo-1629379555555-79c361b3736b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Гортензии',
-    color: ['Голубой'],
-    rating: 4.8,
-    reviewsCount: 76,
-    deliveryTime: '60 минут',
-    description: 'Нежная композиция из голубой гортензии с аккуратной упаковкой.',
-    composition: ['Гортензия — 5 шт', 'Зелень', 'Лента'],
-    sizes: [
-      { value: 'S', label: '3 шт', price: 4200 },
-      { value: 'M', label: '5 шт', price: 5800 },
-      { value: 'L', label: '7 шт', price: 7900 }
-    ]
-  },
-  {
-    id: '8',
-    name: 'Букет "Микс радости"',
-    price: 5500,
-    oldPrice: 6800,
-    image: 'https://images.unsplash.com/photo-1708604378427-a06673e5cc0e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080',
-    category: 'Сборный букет',
-    color: ['Розовый'],
-    rating: 4.9,
-    reviewsCount: 189,
-    deliveryTime: '45 минут',
-    description: 'Сборный букет из сезонных цветов с акцентом на свежесть.',
-    composition: ['Розы — 7 шт', 'Тюльпаны — 5 шт', 'Хризантемы — 5 шт', 'Декор'],
-    sizes: [
-      { value: 'S', label: 'Малый', price: 3900 },
-      { value: 'M', label: 'Средний', price: 5500 },
-      { value: 'L', label: 'Большой', price: 8200 }
-    ]
+const RU = {
+  small: '\u041c\u0430\u043b\u044b\u0439',
+  medium: '\u0421\u0440\u0435\u0434\u043d\u0438\u0439',
+  large: '\u0411\u043e\u043b\u044c\u0448\u043e\u0439',
+  pink: '\u0420\u043e\u0437\u043e\u0432\u044b\u0439',
+  mixedBouquet: '\u0421\u0431\u043e\u0440\u043d\u044b\u0439 \u0431\u0443\u043a\u0435\u0442',
+  delivery60: '60 \u043c\u0438\u043d\u0443\u0442',
+  compositionRoses: '21 \u0448\u0442 \u0440\u043e\u0437',
+  fallbackDescription:
+    '\u0434\u043e\u0441\u0442\u0443\u043f\u0435\u043d \u043a \u0437\u0430\u043a\u0430\u0437\u0443 \u0441 \u0431\u044b\u0441\u0442\u0440\u043e\u0439 \u0434\u043e\u0441\u0442\u0430\u0432\u043a\u043e\u0439 \u0438 \u0444\u043e\u0442\u043e \u043f\u0435\u0440\u0435\u0434 \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u043e\u0439.'
+} as const;
+
+const FIXED_SIZE_PRICES = {
+  S: 5000,
+  M: 8500,
+  L: 13500
+} as const;
+
+type SizeValue = keyof typeof FIXED_SIZE_PRICES;
+
+function normalizeSizeValue(value: string, index: number): SizeValue {
+  const normalized = String(value || '').toUpperCase();
+  if (normalized === 'S' || normalized === 'M' || normalized === 'L') {
+    return normalized;
   }
-];
+  if (index === 0) return 'S';
+  if (index === 1) return 'M';
+  return 'L';
+}
 
-function buildProductsFromCms(content: CmsContent): Product[] {
-  const catalogPage = findCmsPage(content, 'catalog');
-  if (!catalogPage) return [];
+function resolveProductThumbnail(productId: string, fallbackImage: string): string {
+  const normalizedId = String(productId || '').trim().toLowerCase();
+  if (!normalizedId) return fallbackImage;
 
-  const productsBlock = catalogPage.blocks.find((block) => block.type === 'products');
-  if (!productsBlock || !Array.isArray(productsBlock.items)) return [];
+  if (/^rose-\d+$/.test(normalizedId)) {
+    return `/products/previews/${normalizedId}.webp`;
+  }
 
-  const baseByName = new Map(baseProducts.map((product) => [product.name.trim().toLowerCase(), product]));
-  const colorMap: Record<string, string> = {
-    red: 'Красный',
-    pink: 'Розовый',
-    white: 'Белый',
-    yellow: 'Желтый',
-    blue: 'Голубой',
-    purple: 'Фиолетовый',
-    orange: 'Оранжевый',
-    green: 'Зеленый'
-  };
+  return fallbackImage;
+}
 
-  return productsBlock.items
-    .map((item, index) => {
-      if (!item || typeof item !== 'object') return null;
-      const name = typeof item.name === 'string' ? item.name.trim() : '';
-      if (!name) return null;
+function normalizeSizeAvailability(
+  sizes: Array<{ value: string; label: string; price: number }> | undefined
+): ProductSize[] {
+  const normalized = (Array.isArray(sizes) && sizes.length > 0
+    ? sizes
+    : [
+        { value: 'S', label: RU.small, price: Math.max(500, Math.round((fallbackPrice || 1000) * 0.75)) },
+        { value: 'M', label: RU.medium, price: fallbackPrice || 1000 },
+        { value: 'L', label: RU.large, price: Math.max(1500, Math.round((fallbackPrice || 1000) * 1.45)) }
+      ]
+  ).map((size, index) => {
+    const normalizedValue = normalizeSizeValue(String(size.value || 'S'), index);
+    return {
+      value: normalizedValue,
+      label: String(size.label || RU.small),
+      price: FIXED_SIZE_PRICES[normalizedValue]
+    };
+  });
 
-      const price =
-        typeof item.price === 'string' || typeof item.price === 'number'
-          ? parsePriceToNumber(item.price)
-          : 0;
-      const image = resolveCmsImage(content, typeof item.image === 'string' ? item.image : '');
-      const baseMatch = baseByName.get(name.toLowerCase());
-      const cmsCategory = typeof item.subtitle === 'string' ? item.subtitle.trim() : '';
-      const cmsDescription = typeof item.description === 'string' ? item.description.trim() : '';
-      const cmsMeta = typeof item.meta === 'string' ? item.meta.trim() : '';
-      const mappedColors = cmsMeta
-        ? cmsMeta
-            .split(',')
-            .map((raw) => raw.trim())
-            .filter(Boolean)
-            .map((value) => colorMap[value.toLowerCase()] ?? value)
-        : [];
+  if (normalized.length > 0) return normalized;
 
-      return {
-        id: typeof item.id === 'string' && item.id ? item.id : `cms-${index + 1}`,
-        name,
-        price: price || 1000,
-        image: image || baseMatch?.image || '',
-        category: cmsCategory || baseMatch?.category || 'Сборный букет',
-        color: mappedColors.length > 0 ? mappedColors : baseMatch?.color ?? ['Розовый'],
-        rating: 4.9,
-        reviewsCount: 10 + index * 3,
-        deliveryTime: '60 минут',
-        description: cmsDescription || baseMatch?.description || `${name} доступен к заказу с быстрой доставкой и фото перед отправкой.`,
-        composition: baseMatch?.composition ?? ['Состав уточняется у флориста'],
-        sizes: [
-          { value: 'S', label: 'Малый', price: Math.max(500, Math.round((price || 1000) * 0.75)) },
-          { value: 'M', label: 'Средний', price: price || 1000 },
-          { value: 'L', label: 'Большой', price: Math.max(1500, Math.round((price || 1000) * 1.45)) }
-        ]
-      } satisfies Product;
-    })
-    .filter((item): item is Product => item !== null);
+  return [
+    { value: 'S', label: RU.small, price: FIXED_SIZE_PRICES.S },
+    { value: 'M', label: RU.medium, price: FIXED_SIZE_PRICES.M },
+    { value: 'L', label: RU.large, price: FIXED_SIZE_PRICES.L }
+  ];
+}
+
+function applyMediaToSizes(productId: string, sizes: ProductSize[]): ProductSize[] {
+  const media = generatedProductMedia[productId]?.sizes;
+  const merged = sizes.map((size) => {
+    const sizeKey = String(size.value || '').toUpperCase() as 'S' | 'M' | 'L';
+    const images = media?.[sizeKey] ?? [];
+    const hasEnoughImages = images.length >= 3;
+
+    return {
+      ...size,
+      value: sizeKey || size.value,
+      available: hasEnoughImages,
+      image: hasEnoughImages ? images[0] : undefined,
+      images: hasEnoughImages ? images : []
+    };
+  });
+
+  if (!merged.some((size) => size.available !== false) && merged.length > 0) {
+    merged[0] = { ...merged[0], available: true };
+  }
+
+  return merged;
 }
 
 export function getProducts(content?: CmsContent): Product[] {
-  const cmsContent = content ?? loadCmsContent();
-  const cmsProducts = buildProductsFromCms(cmsContent);
-  if (cmsProducts.length === 0) return baseProducts;
+  void content;
 
-  const usedNames = new Set(cmsProducts.map((product) => product.name.trim().toLowerCase()));
-  const remainingBase = baseProducts.filter(
-    (product) => !usedNames.has(product.name.trim().toLowerCase())
-  );
+  return legacyCatalogProducts.map((product, index) => {
+    const id = String(product.id);
+    const normalizedSizes = normalizeSizeAvailability(
+      Array.isArray(product.sizes)
+        ? product.sizes.map((size) => ({
+            value: String(size.value || 'M'),
+            label: String(size.label || RU.medium),
+            price: Number(size.price) || FIXED_SIZE_PRICES.S
+          }))
+        : undefined
+    );
 
-  return [...cmsProducts, ...remainingBase];
+    const sizes = applyMediaToSizes(id, normalizedSizes);
+    const firstAvailableSize = sizes.find((size) => size.available !== false);
+    const fallbackMedia = generatedProductMedia[id]?.sizes?.S ?? [];
+    const image = firstAvailableSize?.image || fallbackMedia[0] || String(product.image || '');
+    const images = firstAvailableSize?.images?.length ? firstAvailableSize.images : (fallbackMedia.length ? fallbackMedia : [image]);
+    const thumbnail = resolveProductThumbnail(id, image);
+    const title = String(product.title || '').trim();
+
+    return {
+      id,
+      name: title || `\u0411\u0443\u043a\u0435\u0442 ${index + 1}`,
+      price: firstAvailableSize?.price ?? FIXED_SIZE_PRICES.S,
+      image,
+      thumbnail,
+      images,
+      category: String(product.category || RU.mixedBouquet),
+      color: [RU.pink],
+      rating: 4.9,
+      reviewsCount: 24 + index * 3,
+      deliveryTime: RU.delivery60,
+      description: String(product.description || '').trim() || `${title || '\u0422\u043e\u0432\u0430\u0440'} ${RU.fallbackDescription}`,
+      composition: [RU.compositionRoses],
+      sizes
+    };
+  });
 }
 
 export const products: Product[] = getProducts();
@@ -248,32 +168,32 @@ export const products: Product[] = getProducts();
 export const categories = [
   {
     id: 'roses',
-    name: 'Розы',
+    name: '\u0420\u043e\u0437\u044b',
     image: 'https://images.unsplash.com/photo-1758827644723-f0acdb36bd85?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400'
   },
   {
     id: 'peonies',
-    name: 'Пионы',
+    name: '\u041f\u0438\u043e\u043d\u044b',
     image: 'https://images.unsplash.com/photo-1773169206110-103f891dda08?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400'
   },
   {
     id: 'tulips',
-    name: 'Тюльпаны',
+    name: '\u0422\u044e\u043b\u044c\u043f\u0430\u043d\u044b',
     image: 'https://images.unsplash.com/photo-1580403071102-c23c5267d060?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400'
   },
   {
     id: 'orchids',
-    name: 'Орхидеи',
+    name: '\u041e\u0440\u0445\u0438\u0434\u0435\u0438',
     image: 'https://images.unsplash.com/photo-1768368052646-a6185df478c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400'
   },
   {
     id: 'mixed',
-    name: 'Сборные букеты',
+    name: '\u0421\u0431\u043e\u0440\u043d\u044b\u0435 \u0431\u0443\u043a\u0435\u0442\u044b',
     image: 'https://images.unsplash.com/photo-1708604378427-a06673e5cc0e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400'
   },
   {
     id: 'sunflowers',
-    name: 'Подсолнухи',
+    name: '\u041f\u043e\u0434\u0441\u043e\u043b\u043d\u0443\u0445\u0438',
     image: 'https://images.unsplash.com/photo-1752765579971-b9949096c5d9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400'
   }
 ];

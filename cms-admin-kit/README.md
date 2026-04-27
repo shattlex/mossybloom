@@ -1,4 +1,4 @@
-﻿# CMS Admin Kit (SARA FLOWERS)
+# CMS Admin Kit (SARA FLOWERS)
 
 Готовый переносимый комплект no-code админки (CRUD страниц, блоков, изображений) на `localStorage`.
 

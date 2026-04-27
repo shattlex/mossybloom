@@ -1,9 +1,8 @@
-﻿import { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, Search } from 'lucide-react';
+﻿import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { Search, X } from 'lucide-react';
 import { Link } from 'react-router';
-import { getProducts } from '../data/products';
-import { useCmsContent } from '../cms/useCmsContent';
+import { products } from '../data';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -11,105 +10,98 @@ interface SearchModalProps {
 }
 
 export function SearchModal({ isOpen, onClose }: SearchModalProps) {
-  const cmsContent = useCmsContent();
-  const products = getProducts(cmsContent);
   const [query, setQuery] = useState('');
 
-  const filteredProducts = query.length > 0
-    ? products.filter((p) =>
-        p.name.toLowerCase().includes(query.toLowerCase()) ||
-        p.category.toLowerCase().includes(query.toLowerCase())
-      )
-    : [];
+  const filteredProducts = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized) return [];
+
+    return products.filter((product) => {
+      return (
+        product.title.toLowerCase().includes(normalized) ||
+        product.category.toLowerCase().includes(normalized) ||
+        product.description.toLowerCase().includes(normalized)
+      );
+    });
+  }, [query]);
+
+  const popularQueries = ['пионы', 'розы', 'авторский букет', 'сухоцветы', 'доставка'];
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-[70] backdrop-blur-sm"
+            className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm"
+            aria-label="Закрыть поиск"
           />
 
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-2xl z-[71] px-4"
+            exit={{ opacity: 0, y: -12 }}
+            className="fixed left-1/2 top-20 z-[71] w-full max-w-3xl -translate-x-1/2 px-4"
           >
-            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
+            <div className="overflow-hidden rounded-[1.5rem] border border-stone-200 bg-white shadow-2xl">
+              <div className="border-b border-stone-200 p-5">
                 <div className="flex items-center gap-3">
-                  <Search className="w-5 h-5 text-gray-400" />
+                  <Search className="h-5 w-5 text-stone-400" />
                   <input
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Найти букет..."
-                    className="flex-1 text-lg outline-none"
+                    placeholder="Найти букет, категорию или стиль"
+                    className="w-full bg-transparent text-[16px] text-stone-900 outline-none placeholder:text-stone-400"
                     autoFocus
-                    style={{ fontFamily: 'var(--font-sans)' }}
                   />
-                  <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Закрыть поиск">
-                    <X className="w-5 h-5" />
+                  <button onClick={onClose} className="rounded-full p-2 hover:bg-stone-100" aria-label="Закрыть">
+                    <X className="h-5 w-5" />
                   </button>
                 </div>
               </div>
 
-              {query.length > 0 && (
-                <div className="max-h-96 overflow-y-auto">
-                  {filteredProducts.length > 0 ? (
-                    <div className="p-4 space-y-2">
-                      {filteredProducts.slice(0, 6).map((product) => (
+              {query.trim() === '' ? (
+                <div className="p-6">
+                  <p className="mb-3 text-[12px] uppercase tracking-[0.18em] text-stone-500">Популярные запросы</p>
+                  <div className="flex flex-wrap gap-2">
+                    {popularQueries.map((item) => (
+                      <button
+                        key={item}
+                        onClick={() => setQuery(item)}
+                        className="rounded-full border border-stone-200 bg-[#f8f6f4] px-3 py-1.5 text-[13px] text-stone-700 hover:bg-stone-100"
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="max-h-[380px] overflow-y-auto p-4">
+                  {filteredProducts.length === 0 ? (
+                    <p className="p-6 text-center text-stone-500">Ничего не найдено.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {filteredProducts.slice(0, 10).map((product) => (
                         <Link
                           key={product.id}
                           to={`/product/${product.id}`}
                           onClick={onClose}
-                          className="flex items-center gap-4 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                          className="flex items-center gap-3 rounded-xl p-3 hover:bg-stone-50"
                         >
-                          <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                          <img src={product.image} alt={product.title} className="h-14 w-14 rounded-lg object-cover" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[15px] text-stone-900">{product.title}</p>
+                            <p className="truncate text-xs text-stone-500">{product.category}</p>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate" style={{ fontFamily: 'var(--font-sans)' }}>
-                              {product.name}
-                            </h4>
-                            <p className="text-sm text-gray-500">{product.category}</p>
-                          </div>
-                          <span className="font-medium" style={{ fontFamily: 'var(--font-sans)' }}>
-                            {product.price.toLocaleString('ru-RU')} ₽
-                          </span>
+                          <span className="text-sm text-stone-800">{product.price.toLocaleString('ru-RU')} ₽</span>
                         </Link>
                       ))}
                     </div>
-                  ) : (
-                    <div className="p-8 text-center text-gray-500" style={{ fontFamily: 'var(--font-sans)' }}>
-                      Ничего не найдено
-                    </div>
                   )}
-                </div>
-              )}
-
-              {query.length === 0 && (
-                <div className="p-8">
-                  <h4 className="font-medium mb-4" style={{ fontFamily: 'var(--font-sans)' }}>
-                    Популярные запросы
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {['Розы', 'Пионы', '101 роза', 'Сборные букеты', 'Тюльпаны'].map((term) => (
-                      <button
-                        key={term}
-                        onClick={() => setQuery(term)}
-                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm transition-colors"
-                        style={{ fontFamily: 'var(--font-sans)' }}
-                      >
-                        {term}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>

@@ -4,6 +4,7 @@ const uid = () => `${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
 
 const requiredPages = [
   { slug: "home", title: "Главная", type: "landing", inNav: true },
+  { slug: "about", title: "О нас", type: "custom", inNav: true },
   { slug: "catalog", title: "Каталог", type: "catalog", inNav: true },
   { slug: "bouquet-builder", title: "Конструктор", type: "custom", inNav: true },
   { slug: "delivery", title: "Доставка", type: "custom", inNav: true },
@@ -19,7 +20,7 @@ function defaultHomeBlocks() {
     {
       id: uid(),
       type: "hero",
-      title: "Sara Flowers",
+      title: "MossyBloom",
       subtitle: "Создаем букеты с любовью для вас",
       buttonText: "Выбрать букет",
       buttonLink: "/catalog",
@@ -55,6 +56,24 @@ function defaultCatalogBlocks() {
         item("Букет \"Голубая гортензия\"", "5800 ₽", "https://images.unsplash.com/photo-1629379555555-79c361b3736b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"),
         item("Букет \"Микс радости\"", "5500 ₽", "https://images.unsplash.com/photo-1708604378427-a06673e5cc0e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080")
       ]
+    }
+  ];
+}
+
+function defaultAboutBlocks() {
+  return [
+    { id: uid(), type: "sectionTitle", text: "О нас" },
+    {
+      id: uid(),
+      type: "text",
+      title: "MossyBloom",
+      body: "Мы создаем авторские букеты и композиции из свежих цветов. Каждая работа собирается вручную с вниманием к деталям."
+    },
+    {
+      id: uid(),
+      type: "text",
+      title: "Наш подход",
+      body: "• свежие поставки каждый день\n• фото букета перед отправкой\n• бережная доставка по Москве и области"
     }
   ];
 }
@@ -132,7 +151,7 @@ function defaultContactsBlocks() {
       title: "contact-items",
       items: [
         item("Телефон", "+7 (495) 123-45-67", "", "", "tel:+74951234567", "phone"),
-        item("Email", "info@saraflowers.ru", "", "", "mailto:info@saraflowers.ru", "mail"),
+        item("Email", "sales@mossybloom.ru", "", "", "mailto:sales@mossybloom.ru", "mail"),
         item("Instagram", "@sara_flowers", "", "", "https://instagram.com", "instagram"),
         item("Адрес", "Москва, ул. Цветочная, д. 15", "", "", "", "map-pin")
       ]
@@ -147,6 +166,7 @@ function createRequiredPage(slug) {
   if (!base) return null;
 
   if (slug === "home") return { id: "home", slug: "home", title: "Главная", type: "landing", inNav: true, blocks: defaultHomeBlocks() };
+  if (slug === "about") return { id: "about", slug: "about", title: "О нас", type: "custom", inNav: true, blocks: defaultAboutBlocks() };
   if (slug === "catalog") return { id: "catalog", slug: "catalog", title: "Каталог", type: "catalog", inNav: true, blocks: defaultCatalogBlocks() };
   if (slug === "bouquet-builder") return { id: "bouquet-builder", slug: "bouquet-builder", title: "Конструктор", type: "custom", inNav: true, blocks: defaultBouquetBuilderBlocks() };
   if (slug === "delivery") return { id: "delivery", slug: "delivery", title: "Доставка", type: "custom", inNav: true, blocks: defaultDeliveryBlocks() };
@@ -266,3 +286,4 @@ export function resetContent() {
 export function makeId(prefix = "id") {
   return `${prefix}_${uid()}`;
 }
+

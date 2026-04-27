@@ -1,68 +1,51 @@
-﻿import { Mail } from 'lucide-react';
-import { Link } from 'react-router';
-import { useCmsContent } from '../cms/useCmsContent';
-import { LEGAL_DOCUMENTS } from '../legal/legalDocuments';
+﻿import { Link } from "react-router";
 
 export function Footer() {
-  const cmsContent = useCmsContent();
-  const siteName = cmsContent.siteName?.trim() || 'Sara Flowers';
-
   return (
-    <footer className="bg-gray-50 border-t border-gray-200" style={{ fontFamily: 'var(--font-sans)' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 className="text-3xl font-light italic mb-4" style={{ fontFamily: 'var(--font-script)' }}>
-              {siteName}
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Свежие цветы, авторские композиции и бережная доставка по Москве и области.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="font-medium mb-4">Каталог</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li><Link to="/catalog" className="hover:text-primary transition-colors">Букеты</Link></li>
-              <li><Link to="/bouquet-builder" className="hover:text-primary transition-colors">Конструктор</Link></li>
-              <li><Link to="/delivery" className="hover:text-primary transition-colors">Доставка</Link></li>
-              <li><Link to="/contacts" className="hover:text-primary transition-colors">Контакты</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-medium mb-4">Документы</h4>
-            <ul className="space-y-2 text-sm text-gray-600">
-              {LEGAL_DOCUMENTS.map((doc) => (
-                <li key={doc.route}>
-                  <Link to={doc.route} className="hover:text-primary transition-colors">
-                    {doc.footerLabel}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-medium mb-4">Контакты</h4>
-            <ul className="space-y-3 text-sm text-gray-600">
-              <li className="flex items-start gap-2">
-                <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <a href="mailto:sales@sara-flowers.ru" className="hover:text-primary transition-colors">sales@sara-flowers.ru</a>
-              </li>
-            </ul>
-          </div>
+    <footer className="bg-[#141414] text-[#F5F5F5] mt-24 md:mt-40 overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 pt-24 md:pt-32 pb-16 grid grid-cols-1 md:grid-cols-12 gap-12 lg:gap-8">
+        <div className="md:col-span-4 flex flex-col gap-8 pr-0 lg:pr-12">
+          <span className="text-4xl font-serif tracking-tight text-white">Mossy Bloom</span>
+          <p className="text-[15px] text-stone-400 leading-relaxed font-light max-w-sm">
+            Премиальная флористика и бережная доставка по Москве.
+            Создаём композиции для важных моментов и отправляем фото перед доставкой.
+          </p>
         </div>
 
-        <div className="border-t border-gray-200 mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-600">
-          <p>&copy; 2026 {siteName}. Все права защищены.</p>
-          <div className="flex gap-6">
-            <Link to="/privacy" className="hover:text-primary transition-colors">Политика конфиденциальности</Link>
-            <Link to="/terms" className="hover:text-primary transition-colors">Пользовательское соглашение</Link>
+        <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-12">
+          <div className="flex flex-col gap-6 text-[14px] font-light tracking-wide">
+            <span className="font-medium text-white tracking-widest uppercase text-xs mb-2">Каталог</span>
+            <Link to="/catalog" className="text-stone-400 hover:text-white transition-colors">Все букеты</Link>
+            <Link to="/catalog?category=author" className="text-stone-400 hover:text-white transition-colors">Авторские</Link>
+            <Link to="/catalog?category=peonies" className="text-stone-400 hover:text-white transition-colors">Пионы</Link>
+            <Link to="/catalog?category=roses" className="text-stone-400 hover:text-white transition-colors">Розы</Link>
           </div>
+
+          <div className="flex flex-col gap-6 text-[14px] font-light tracking-wide">
+            <span className="font-medium text-white tracking-widest uppercase text-xs mb-2">Сервис</span>
+            <Link to="/delivery" className="text-stone-400 hover:text-white transition-colors">Доставка и оплата</Link>
+            <Link to="/faq" className="text-stone-400 hover:text-white transition-colors">Вопросы и ответы</Link>
+            <Link to="/contacts" className="text-stone-400 hover:text-white transition-colors">Контакты</Link>
+            <Link to="/account" className="text-stone-400 hover:text-white transition-colors">Личный кабинет</Link>
+          </div>
+
+          <div className="flex flex-col gap-6 text-[14px] font-light tracking-wide">
+            <span className="font-medium text-white tracking-widest uppercase text-xs mb-2">Документы</span>
+            <a href="tel:+79990000000" className="text-stone-300 text-lg hover:text-white transition-colors">+7 (999) 000-00-00</a>
+            <a href="mailto:hello@mossybloom.ru" className="text-[#C2958B] hover:text-white transition-colors">hello@mossybloom.ru</a>
+            <span className="text-stone-500 mt-2">Ежедневно 09:00 - 21:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-[13px] text-stone-500 font-light tracking-wide gap-3">
+        <span>© 2026 Mossy Bloom. Все права защищены.</span>
+        <div className="flex gap-8 mt-1 md:mt-0">
+          <Link to="/privacy" className="hover:text-stone-300 transition-colors">Конфиденциальность</Link>
+          <Link to="/oferta" className="hover:text-stone-300 transition-colors">Оферта</Link>
+          <Link to="/terms" className="hover:text-stone-300 transition-colors">Пользовательское соглашение</Link>
         </div>
       </div>
     </footer>
   );
 }
-

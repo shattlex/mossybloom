@@ -1,136 +1,97 @@
-﻿import { Link } from 'react-router';
-import { ShoppingCart, Search, Heart, Menu, UserRound } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import { motion } from 'motion/react';
-import { useMemo, useState } from 'react';
-import { SearchModal } from './SearchModal';
-import { MobileMenu } from './MobileMenu';
-import { useCmsContent } from '../cms/useCmsContent';
-import { useFavorites } from '../context/FavoritesContext';
-
-const fallbackNav = [
-  { slug: 'home', title: 'О нас' },
-  { slug: 'catalog', title: 'Каталог' },
-  { slug: 'bouquet-builder', title: 'Конструктор' },
-  { slug: 'delivery', title: 'Доставка' },
-  { slug: 'contacts', title: 'Контакты' }
-];
-
-function pageToPath(slug: string): string {
-  return slug === 'home' ? '/' : `/${slug}`;
-}
+﻿import { useState } from "react";
+import { Heart, MapPin, Menu, Search, ShoppingBag, User } from "lucide-react";
+import { Link } from "react-router";
+import { getAuthToken } from "../api/client";
+import { SearchModal } from "./SearchModal";
+import { MobileMenu } from "./MobileMenu";
+import { useCart } from "../context/CartContext";
+import { useFavorites } from "../context/FavoritesContext";
 
 export function Header() {
   const { itemCount } = useCart();
   const { favoritesCount } = useFavorites();
-  const cmsContent = useCmsContent();
-  const siteName = cmsContent.siteName?.trim() || 'Sara Flowers';
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const navItems = useMemo(() => {
-    const bySlug = new Map(cmsContent.pages.map((page) => [page.slug, page]));
-    return fallbackNav
-      .map((item) => {
-        const page = bySlug.get(item.slug);
-        if (page && page.inNav !== false) {
-          return { to: pageToPath(page.slug), label: page.title || item.title };
-        }
-        if (!page) {
-          return { to: pageToPath(item.slug), label: item.title };
-        }
-        return null;
-      })
-      .filter((item): item is { to: string; label: string } => item !== null);
-  }, [cmsContent.pages]);
+  const isAuth = Boolean(getAuthToken());
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuItems = [
+    { to: "/catalog", label: "Каталог" },
+    { to: "/bouquet-builder", label: "Конструктор" },
+    { to: "/delivery", label: "Доставка" },
+    { to: "/about", label: "О нас" },
+    { to: "/contacts", label: "Контакты" },
+    { to: "/account", label: "Личный кабинет" }
+  ];
 
   return (
     <>
-      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
-      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} items={navItems} />
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/50"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-3 border-b border-gray-100">
-            <div />
-            <div className="text-sm text-gray-600">
-              <span>Доставка за 60 минут</span>
-            </div>
+      <header className="border-b border-stone-200/50 bg-white/70 backdrop-blur-xl supports-[backdrop-filter]:bg-white/50 sticky top-0 z-50 transition-all duration-500">
+        <div className="max-w-[1400px] mx-auto px-6 md:px-12 h-[80px] md:h-[96px] flex items-center justify-between">
+          <div className="flex items-center gap-10 flex-1">
+            <button className="hidden md:flex items-center gap-2 text-[13px] tracking-wide text-stone-500 hover:text-stone-900 transition-colors group">
+              <MapPin size={16} className="text-[#C2958B] group-hover:scale-110 transition-transform duration-300" />
+              <span className="font-medium uppercase tracking-widest">Москва</span>
+            </button>
+            <button
+              className="md:hidden p-2 -ml-2 text-stone-800 hover:bg-stone-100 rounded-full transition-colors"
+              aria-label="Меню"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu size={24} strokeWidth={1.5} />
+            </button>
+
+            <nav className="hidden lg:flex items-center gap-8 lg:mr-8 xl:mr-12 text-[14px] font-medium text-stone-600">
+              <Link to="/catalog" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">Каталог</Link>
+              <Link to="/bouquet-builder" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">Конструктор</Link>
+              <Link to="/delivery" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">Доставка</Link>
+              <Link to="/about" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">О нас</Link>
+              <Link to="/contacts" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">Контакты</Link>
+            </nav>
           </div>
 
-          <div className="flex items-center justify-between py-2">
-            <Link to="/" className="flex items-center">
-              <img
-                src="/logo-sara.png"
-                alt={siteName}
-                className="h-auto w-[170px] sm:w-[210px] md:w-[230px] max-h-16 sm:max-h-20 md:max-h-20 object-contain object-left"
-                onError={(e) => {
-                  const target = e.currentTarget as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-              <h1 className="sr-only">{siteName}</h1>
+          <Link to="/" className="text-3xl md:text-4xl font-serif tracking-tight text-stone-900 flex-shrink-0 flex items-center justify-center hover:opacity-80 transition-opacity">
+            Mossy Bloom
+          </Link>
+
+          <div className="flex items-center gap-3 md:gap-4 flex-1 justify-end text-stone-800">
+            <button
+              className="p-2 rounded-full hover:bg-stone-100 transition-colors"
+              aria-label="Поиск"
+              onClick={() => setSearchOpen(true)}
+            >
+              <Search size={22} strokeWidth={1.2} />
+            </button>
+
+            <Link to="/favorites" className="p-2 rounded-full hover:bg-stone-100 transition-colors flex items-center gap-1 group relative" aria-label="Избранное">
+              <div className="relative">
+                <Heart size={22} strokeWidth={1.2} className="group-hover:scale-105 transition-transform duration-300" />
+                {favoritesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-stone-900 text-white text-[10px] font-medium min-w-4 h-4 px-1 flex items-center justify-center rounded-full shadow-sm ring-2 ring-white">
+                    {favoritesCount}
+                  </span>
+                )}
+              </div>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-8" style={{ fontFamily: 'var(--font-sans)' }}>
-              {navItems.map((item) => (
-                <Link key={item.to} to={item.to} className="text-sm hover:text-primary transition-colors">
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            <Link to="/account" className="p-2 rounded-full hover:bg-stone-100 transition-colors hidden sm:block relative" aria-label="Профиль">
+              <User size={22} strokeWidth={1.2} className={isAuth ? "text-[#C2958B]" : ""} />
+            </Link>
 
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setIsSearchOpen(true)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Поиск"
-              >
-                <Search className="w-5 h-5" />
-              </button>
-              <Link to="/favorites" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative" aria-label="Избранное">
-                <Heart className="w-5 h-5" />
-                {favoritesCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-primary text-white text-xs min-w-5 h-5 px-1 rounded-full flex items-center justify-center"
-                  >
-                    {favoritesCount}
-                  </motion.span>
-                )}
-              </Link>
-              <Link to="/cart" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative" aria-label="Корзина">
-                <ShoppingCart className="w-5 h-5" />
+            <Link to="/cart" className="p-2 rounded-full hover:bg-stone-100 transition-colors flex items-center gap-1 group relative" aria-label="Корзина">
+              <div className="relative">
+                <ShoppingBag size={22} strokeWidth={1.2} className="group-hover:scale-105 transition-transform duration-300" />
                 {itemCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 bg-primary text-white text-xs w-5 h-5 rounded-full flex items-center justify-center"
-                  >
+                  <span className="absolute -top-1 -right-1 bg-[#C2958B] text-white text-[10px] font-medium min-w-4 h-4 px-1 flex items-center justify-center rounded-full shadow-sm ring-2 ring-white">
                     {itemCount}
-                  </motion.span>
+                  </span>
                 )}
-              </Link>
-              <Link to="/account" className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Личный кабинет">
-                <UserRound className="w-5 h-5" />
-              </Link>
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="md:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Меню"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-            </div>
+              </div>
+            </Link>
           </div>
         </div>
-      </motion.header>
+      </header>
+
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <MobileMenu isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} items={mobileMenuItems} />
     </>
   );
 }
-
-

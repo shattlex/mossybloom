@@ -1,5 +1,5 @@
 ﻿import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, Grid, Package, Phone, Palette } from 'lucide-react';
+import { X, Home, Grid, Package, Phone, Palette, Info, UserRound, Heart } from 'lucide-react';
 import { Link } from 'react-router';
 
 interface MobileMenuItem {
@@ -14,12 +14,15 @@ interface MobileMenuProps {
 }
 
 function iconFor(path: string) {
-  if (path === '/') return <Home className="w-5 h-5" />;
-  if (path === '/catalog') return <Grid className="w-5 h-5" />;
-  if (path === '/bouquet-builder') return <Palette className="w-5 h-5" />;
-  if (path === '/delivery') return <Package className="w-5 h-5" />;
-  if (path === '/contacts') return <Phone className="w-5 h-5" />;
-  return <Grid className="w-5 h-5" />;
+  if (path === '/') return <Home className="h-5 w-5" />;
+  if (path === '/about') return <Info className="h-5 w-5" />;
+  if (path === '/catalog') return <Grid className="h-5 w-5" />;
+  if (path === '/bouquet-builder') return <Palette className="h-5 w-5" />;
+  if (path === '/delivery') return <Package className="h-5 w-5" />;
+  if (path === '/contacts') return <Phone className="h-5 w-5" />;
+  if (path === '/favorites') return <Heart className="h-5 w-5" />;
+  if (path === '/account') return <UserRound className="h-5 w-5" />;
+  return <Grid className="h-5 w-5" />;
 }
 
 export function MobileMenu({ isOpen, onClose, items }: MobileMenuProps) {
@@ -32,51 +35,48 @@ export function MobileMenu({ isOpen, onClose, items }: MobileMenuProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] bg-black/45 backdrop-blur-sm"
           />
 
-          <motion.div
+          <motion.aside
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'tween', duration: 0.3 }}
-            className="fixed top-0 right-0 bottom-0 w-80 max-w-full bg-white z-50 shadow-2xl"
+            transition={{ type: 'tween', duration: 0.25 }}
+            className="fixed right-0 top-0 z-[61] h-full w-[86%] max-w-[340px] border-l border-stone-200 bg-[#fefdfb] shadow-2xl"
           >
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-2xl font-light italic" style={{ fontFamily: 'var(--font-script)' }}>
+            <div className="flex items-center justify-between border-b border-stone-200 px-5 py-4">
+              <h2 className="text-3xl text-stone-900" style={{ fontFamily: 'var(--font-script)' }}>
                 Меню
               </h2>
-              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors" aria-label="Закрыть меню">
-                <X className="w-6 h-6" />
+              <button onClick={onClose} className="rounded-full p-2 hover:bg-stone-100" aria-label="Закрыть меню">
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <nav className="p-6" style={{ fontFamily: 'var(--font-sans)' }}>
-              <ul className="space-y-2">
+            <nav className="p-4" style={{ fontFamily: 'var(--font-sans)' }}>
+              <ul className="space-y-1">
                 {items.map((item) => (
                   <li key={item.to}>
                     <Link
                       to={item.to}
                       onClick={onClose}
-                      className="flex items-center gap-3 p-4 hover:bg-gray-50 rounded-xl transition-colors"
+                      className="flex items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-stone-700 transition-colors hover:bg-stone-100 hover:text-stone-900"
                     >
-                      {iconFor(item.to)}
-                      <span className="font-medium">{item.label}</span>
+                      <span className="text-[#C2958B]">{iconFor(item.to)}</span>
+                      <span>{item.label}</span>
                     </Link>
                   </li>
                 ))}
               </ul>
 
-              <div className="mt-8 pt-8 border-t border-gray-200 space-y-4">
-                <div>
-                  <p className="text-sm text-gray-500 mb-2">Email</p>
-                  <a href="mailto:sales@sara-flowers.ru" className="text-lg font-medium hover:text-primary transition-colors">
-                    sales@sara-flowers.ru
-                  </a>
-                </div>
+              <div className="mt-6 border-t border-stone-200 pt-4 text-sm text-stone-500">
+                <a href="mailto:sales@mossybloom.ru" className="transition-colors hover:text-stone-900">
+                  sales@mossybloom.ru
+                </a>
               </div>
             </nav>
-          </motion.div>
+          </motion.aside>
         </>
       )}
     </AnimatePresence>

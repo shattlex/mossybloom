@@ -1,4 +1,4 @@
-﻿# Integration Guide
+# Integration Guide
 
 ## 1) Подключение админки
 - Помести `admin.html`, `admin.css`, `admin.js`, `content-store.js` в проект.

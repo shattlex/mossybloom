@@ -1,4 +1,4 @@
-﻿import { type ReactNode, useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { COMPANY_DETAILS, getLegalDocumentByKey, type LegalDocumentKey } from '../legal/legalDocuments';
 
@@ -103,7 +103,7 @@ export function LegalDocumentPage({ documentKey }: LegalDocumentPageProps) {
   const parsedBlocks = useMemo(() => parseDocument(content), [content]);
 
   return (
-    <div className="min-h-screen pt-60 pb-20" style={{ fontFamily: 'var(--font-sans)' }}>
+    <div className="min-h-screen pb-16 md:pb-24" style={{ fontFamily: 'var(--font-sans)' }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-10">
           <h1 className="text-4xl sm:text-5xl font-light italic mb-3" style={{ fontFamily: 'var(--font-script)' }}>
@@ -166,3 +166,4 @@ export function LegalDocumentPage({ documentKey }: LegalDocumentPageProps) {
     </div>
   );
 }
+

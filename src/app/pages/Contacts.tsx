@@ -20,7 +20,7 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 const fallbackContactInfo: ContactItem[] = [
-  { icon: Mail, title: 'Email', content: 'sales@sara-flowers.ru', link: 'mailto:sales@sara-flowers.ru' },
+  { icon: Mail, title: 'Email', content: 'sales@mossybloom.ru', link: 'mailto:sales@mossybloom.ru' },
   { icon: Instagram, title: 'Instagram', content: '@sara_flowers', link: 'https://instagram.com' }
 ];
 
@@ -84,13 +84,13 @@ function normalizeContactInfo(items: ContactItem[]): ContactItem[] {
   const hasEmail = withoutPhoneOrAddress.some((item) => item.title.trim().toLowerCase().includes('email'));
   const normalized = withoutPhoneOrAddress.map((item) =>
     item.title.trim().toLowerCase().includes('email')
-      ? { ...item, content: 'sales@sara-flowers.ru', link: 'mailto:sales@sara-flowers.ru' }
+      ? { ...item, content: 'sales@mossybloom.ru', link: 'mailto:sales@mossybloom.ru' }
       : item
   );
 
   if (hasEmail) return normalized;
 
-  return [{ icon: Mail, title: 'Email', content: 'sales@sara-flowers.ru', link: 'mailto:sales@sara-flowers.ru' }, ...normalized];
+  return [{ icon: Mail, title: 'Email', content: 'sales@mossybloom.ru', link: 'mailto:sales@mossybloom.ru' }, ...normalized];
 }
 
 export function Contacts() {
@@ -143,7 +143,7 @@ export function Contacts() {
   };
 
   return (
-    <div className="min-h-screen pt-60 pb-20">
+    <div className="min-h-screen pb-16 md:pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
           <h1 className="text-5xl sm:text-6xl font-light italic mb-6" style={{ fontFamily: 'var(--font-script)' }}>{pageTitle}</h1>
@@ -266,6 +266,8 @@ export function Contacts() {
     </div>
   );
 }
+
+
 
 
 

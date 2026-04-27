@@ -1,174 +1,294 @@
-﻿import { useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router';
-import { motion } from 'motion/react';
-import { Star, Clock, Shield, Camera, Heart, ShoppingCart, ChevronLeft, Check } from 'lucide-react';
+import { Heart, ArrowLeft, Star, Clock, Check, ShieldCheck, Camera } from 'lucide-react';
 import { getProducts } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
 import { ProductCard } from '../components/ProductCard';
-import { useCmsContent } from '../cms/useCmsContent';
+import { DEFAULT_ORDER_EXTRAS } from '../types/orderExtras';
+import { OrderExtrasFields } from '../components/OrderExtrasFields';
+
+const RUB = '\u20BD';
 
 export function ProductDetail() {
-  const cmsContent = useCmsContent();
-  const products = getProducts(cmsContent);
+  const products = useMemo(() => getProducts(), []);
   const { id } = useParams();
   const product = products.find((p) => p.id === id);
-  const { addToCart } = useCart();
+  const { addToCart, orderExtras, setOrderExtras } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const [selectedSize, setSelectedSize] = useState(product?.sizes[1]?.value || product?.sizes[0]?.value || 'M');
+
+  const [selectedSize, setSelectedSize] = useState(product?.sizes.find((size) => size.available !== false)?.value || product?.sizes[0]?.value || 'M');
   const [added, setAdded] = useState(false);
+  const [localExtras, setLocalExtras] = useState(orderExtras || DEFAULT_ORDER_EXTRAS);
+
+  const favorite = product ? isFavorite(product.id) : false;
+
+  const selectedSizeData = useMemo(
+    () => product?.sizes.find((size) => size.value === selectedSize),
+    [product, selectedSize]
+  );
+  const activeImages = useMemo(() => {
+    if (!product) return [];
+    if (selectedSizeData?.images && selectedSizeData.images.length > 0) {
+      return selectedSizeData.images;
+    }
+    if (product.images && product.images.length > 0) {
+      return product.images;
+    }
+    return [product.image];
+  }, [product, selectedSizeData]);
+  const [selectedImage, setSelectedImage] = useState<string>(activeImages[0] || product?.image || '');
+  const currentPrice = selectedSizeData?.price || product?.price || 0;
+  const composition = useMemo(() => {
+    if (!product) return [];
+
+    const defaultComposition = Array.isArray(product.composition) && product.composition.length > 0
+      ? product.composition
+      : ['21 шт роз'];
+
+    const roseCountBySize: Record<string, string> = {
+      S: '21 шт роз',
+      M: '51 шт роз',
+      L: '101 шт роз'
+    };
+
+    const replacement = roseCountBySize[selectedSize] ?? roseCountBySize.S;
+    return [replacement, ...defaultComposition.slice(1)];
+  }, [product, selectedSize]);
+
+  const preloadedProductImages = useMemo(() => {
+    if (!product) return [];
+    const urls = new Set<string>();
+    urls.add(product.image);
+    if (product.images && product.images.length > 0) {
+      urls.add(product.images[0]);
+    }
+    product.sizes.forEach((size) => {
+      if (size.image) {
+        urls.add(size.image);
+      } else if (size.images && size.images.length > 0) {
+        urls.add(size.images[0]);
+      }
+    });
+    return [...urls].filter(Boolean);
+  }, [product]);
+
+  useEffect(() => {
+    setSelectedImage(activeImages[0] || product?.image || '');
+  }, [activeImages, product]);
+
+  useEffect(() => {
+    activeImages.forEach((url) => {
+      const image = new Image();
+      image.decoding = 'async';
+      image.src = url;
+    });
+  }, [activeImages]);
+
+  useEffect(() => {
+    preloadedProductImages.forEach((url) => {
+      const image = new Image();
+      image.decoding = 'async';
+      image.src = url;
+    });
+  }, [preloadedProductImages]);
+
+  useEffect(() => {
+    if (!product) return;
+    const selected = product.sizes.find((size) => size.value === selectedSize);
+    if (!selected || selected.available === false) {
+      const fallback = product.sizes.find((size) => size.available !== false)?.value || product.sizes[0]?.value || 'M';
+      setSelectedSize(fallback);
+    }
+  }, [product, selectedSize]);
+
+  const relatedProducts = products
+    .filter((item) => item.category === product?.category && item.id !== product?.id)
+    .slice(0, 4);
 
   if (!product) {
     return (
-      <div className="min-h-screen pt-60 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-light italic mb-4" style={{ fontFamily: 'var(--font-script)' }}>
-            Товар не найден
-          </h1>
-          <Link to="/catalog" className="text-primary hover:underline">
-            Вернуться в каталог
-          </Link>
-        </div>
+      <div className="mx-auto min-h-screen max-w-[1400px] px-6 py-24 md:px-12">
+        <h1 className="mb-4 text-4xl text-stone-900" style={{ fontFamily: 'var(--font-script)' }}>Товар не найден</h1>
+        <Link to="/catalog" className="text-[#C2958B] hover:underline">Вернуться в каталог</Link>
       </div>
     );
   }
 
-  const selectedSizeData = product.sizes.find((s) => s.value === selectedSize);
-  const currentPrice = selectedSizeData?.price || product.price;
-  const relatedProducts = products.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 4);
-  const favorite = isFavorite(product.id);
-
   const handleAddToCart = () => {
+    setOrderExtras(localExtras);
     addToCart(product, selectedSize);
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    window.setTimeout(() => setAdded(false), 1700);
   };
 
   return (
-    <div className="min-h-screen pt-32 pb-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link to="/catalog" className="inline-flex items-center gap-2 text-gray-600 hover:text-primary mb-8 transition-colors">
-          <ChevronLeft className="w-4 h-4" />
-          Назад в каталог
-        </Link>
+    <div className="mx-auto max-w-[1400px] px-6 pb-16 md:px-12 md:pb-24">
+      <div className="mb-8 flex items-center gap-4 text-[11px] uppercase tracking-[0.16em] text-stone-500">
+        <Link to="/" className="transition-colors hover:text-stone-900">Главная</Link>
+        <span className="h-1 w-1 rounded-full bg-stone-300" />
+        <Link to="/catalog" className="transition-colors hover:text-stone-900">Каталог</Link>
+        <span className="h-1 w-1 rounded-full bg-stone-300" />
+        <span className="text-stone-900">{product.name}</span>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-            <div className="sticky top-32">
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-gray-100">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                {product.oldPrice && (
-                  <div className="absolute top-6 left-6 bg-red-500 text-white px-4 py-2 rounded-full">
-                    -{Math.round((1 - product.price / product.oldPrice) * 100)}%
-                  </div>
-                )}
+      <Link to="/catalog" className="mb-8 inline-flex items-center gap-2 text-sm text-stone-600 transition-colors hover:text-stone-900">
+        <ArrowLeft size={16} />
+        Назад в каталог
+      </Link>
+
+      <div className="grid grid-cols-1 gap-12 pb-16 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-6">
+          <div className="relative overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-sm">
+            <img
+              src={selectedImage || product.image}
+              alt={product.name}
+              loading="eager"
+              fetchPriority="high"
+              decoding="async"
+              className="aspect-[4/5] h-full w-full object-cover"
+            />
+            {product.oldPrice && (
+              <span className="absolute left-5 top-5 rounded-full bg-white/90 px-3 py-1 text-xs uppercase tracking-[0.14em] text-stone-900">
+                -{Math.round((1 - product.price / product.oldPrice) * 100)}%
+              </span>
+            )}
+          </div>
+          {activeImages.length > 1 && (
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              {activeImages.map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  onClick={() => setSelectedImage(image)}
+                  className={`overflow-hidden rounded-xl border ${selectedImage === image ? 'border-stone-900' : 'border-stone-200'}`}
+                >
+                  <img
+                    src={image}
+                    alt={`${product.name} ${index + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    className="aspect-[4/5] w-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-6">
+          <div className="lg:sticky lg:top-32">
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <h1 className="text-4xl leading-[1.02] text-stone-900 md:text-5xl" style={{ fontFamily: 'var(--font-script)' }}>
+                {product.name}
+              </h1>
+              <button
+                onClick={() => toggleFavorite(product.id)}
+                className={`rounded-full border p-3 transition-colors ${favorite ? 'border-[#C2958B] bg-[#C2958B] text-white' : 'border-stone-200 bg-white text-stone-600 hover:text-[#C2958B]'}`}
+                aria-label={favorite ? 'Убрать из избранного' : 'Добавить в избранное'}
+              >
+                <Heart className={`h-5 w-5 ${favorite ? 'fill-current' : ''}`} />
+              </button>
+            </div>
+
+            <div className="mb-5 flex items-center gap-3 text-sm text-stone-500">
+              <span className="inline-flex items-center gap-1"><Star size={14} className="fill-[#C2958B] text-[#C2958B]" />{product.rating}</span>
+              <span>•</span>
+              <span>{product.reviewsCount} отзывов</span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1"><Clock size={14} />{product.deliveryTime}</span>
+            </div>
+
+            <p className="mb-6 text-base leading-relaxed text-stone-600">{product.description}</p>
+
+            <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-5">
+              <h2 className="mb-3 text-[12px] uppercase tracking-[0.16em] text-stone-700">Размер</h2>
+              <div className="grid grid-cols-3 gap-3">
+                {product.sizes.map((size) => {
+                  const active = size.value === selectedSize;
+                  const isAvailable = size.available !== false;
+                  return (
+                    <button
+                      key={size.value}
+                      type="button"
+                      disabled={!isAvailable}
+                      title={isAvailable ? '' : 'Нет в наличии'}
+                      onClick={() => {
+                        if (!isAvailable) return;
+                        setSelectedSize(size.value);
+                        if (size.images && size.images.length > 0) {
+                          setSelectedImage(size.images[0]);
+                        } else if (size.image) {
+                          setSelectedImage(size.image);
+                        }
+                      }}
+                      className={`rounded-xl border px-3 py-3 text-center transition-colors ${
+                        !isAvailable
+                          ? 'cursor-not-allowed border-stone-200 bg-stone-100 text-stone-400'
+                          : active
+                            ? 'border-stone-900 bg-stone-900 text-white'
+                            : 'border-stone-200 bg-stone-50 text-stone-700 hover:bg-stone-100'
+                      }`}
+                    >
+                      <div className="text-sm">{size.label}</div>
+                      <div className="mt-1 text-xs">{size.price.toLocaleString('ru-RU')} {RUB}</div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6" style={{ fontFamily: 'var(--font-sans)' }}>
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1">
-                <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                <span className="font-medium">{product.rating}</span>
-                <span className="text-gray-500">({product.reviewsCount} отзывов)</span>
-              </div>
-              <span className="text-gray-400">•</span>
-              <span className="text-gray-600">{product.category}</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl font-light italic" style={{ fontFamily: 'var(--font-script)' }}>{product.name}</h1>
-            <p className="text-gray-600 text-lg">{product.description}</p>
-
-            <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-medium mb-3">Состав букета:</h3>
+            <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-5">
+              <h2 className="mb-3 text-[12px] uppercase tracking-[0.16em] text-stone-700">Состав</h2>
               <ul className="space-y-2">
-                {product.composition.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2 text-gray-600">
-                    <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                    <span>{item}</span>
+                {composition.map((item, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm text-stone-600">
+                    <Check size={15} className="mt-0.5 text-[#C2958B]" />
+                    {item}
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div>
-              <h3 className="font-medium mb-3">Размер букета:</h3>
-              <div className="grid grid-cols-3 gap-3">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size.value}
-                    onClick={() => setSelectedSize(size.value)}
-                    className={`p-4 rounded-xl border-2 transition-all ${selectedSize === size.value ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
-                  >
-                    <div className="font-medium">{size.label}</div>
-                    <div className="text-sm text-gray-600 mt-1">{size.price.toLocaleString('ru-RU')} ₽</div>
-                  </button>
-                ))}
-              </div>
+            <div className="mb-6 rounded-2xl border border-stone-200 bg-white p-5">
+              <OrderExtrasFields extras={localExtras} onChange={setLocalExtras} title="Дополнительно к заказу" />
             </div>
 
-            <div className="flex items-baseline gap-3 pt-4 border-t border-gray-200">
-              <span className="text-4xl font-medium">{currentPrice.toLocaleString('ru-RU')} ₽</span>
+            <div className="mb-7 flex items-baseline justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-5">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-stone-500">Стоимость</p>
+                <p className="text-3xl text-stone-900" style={{ fontFamily: 'var(--font-script)' }}>{currentPrice.toLocaleString('ru-RU')} {RUB}</p>
+              </div>
               {product.oldPrice && selectedSize === 'M' && (
-                <span className="text-xl text-gray-400 line-through">{product.oldPrice.toLocaleString('ru-RU')} ₽</span>
+                <p className="text-sm text-stone-400 line-through">{product.oldPrice.toLocaleString('ru-RU')} {RUB}</p>
               )}
             </div>
 
-            <div className="flex gap-4">
-              <motion.button whileTap={{ scale: 0.95 }} onClick={handleAddToCart} className="flex-1 px-8 py-4 bg-primary text-white rounded-full hover:bg-opacity-90 transition-all flex items-center justify-center gap-2">
-                {added ? (
-                  <><Check className="w-5 h-5" />Добавлено</>
-                ) : (
-                  <><ShoppingCart className="w-5 h-5" />В корзину</>
-                )}
-              </motion.button>
-              <button
-                onClick={() => toggleFavorite(product.id)}
-                className={`p-4 border rounded-full transition-colors ${
-                  favorite ? 'border-primary bg-primary text-white' : 'border-gray-200 hover:bg-gray-50'
-                }`}
-                aria-label={favorite ? 'Убрать из избранного' : 'Добавить в избранное'}
-              >
-                <Heart className={`w-6 h-6 ${favorite ? 'fill-current' : ''}`} />
-              </button>
-            </div>
+            <button
+              onClick={handleAddToCart}
+              className="mb-7 w-full rounded-xl bg-stone-900 px-6 py-4 text-[13px] uppercase tracking-[0.14em] text-white transition-colors hover:bg-[#C2958B]"
+            >
+              {added ? 'Добавлено в корзину' : 'Добавить в корзину'}
+            </button>
 
-            <div className="bg-primary/5 rounded-xl p-6 space-y-3">
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-medium">Доставка за {product.deliveryTime}</div>
-                  <div className="text-sm text-gray-600">Быстро и бережно доставим ваш заказ</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Camera className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-medium">Фото перед отправкой</div>
-                  <div className="text-sm text-gray-600">Покажем готовый букет перед доставкой</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-medium">Гарантия свежести</div>
-                  <div className="text-sm text-gray-600">Заменим букет, если что-то не так</div>
-                </div>
-              </div>
+            <div className="space-y-3 rounded-2xl border border-stone-200 bg-white p-5 text-sm text-stone-600">
+              <p className="inline-flex items-start gap-2"><Camera size={15} className="mt-0.5 text-[#C2958B]" />Фото перед отправкой</p>
+              <p className="inline-flex items-start gap-2"><ShieldCheck size={15} className="mt-0.5 text-[#C2958B]" />Гарантия свежести</p>
             </div>
-          </motion.div>
+          </div>
         </div>
-
-        {relatedProducts.length > 0 && (
-          <section>
-            <h2 className="text-4xl font-light italic mb-8" style={{ fontFamily: 'var(--font-script)' }}>Похожие товары</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedProducts.map((related) => <ProductCard key={related.id} product={related} />)}
-            </div>
-          </section>
-        )}
       </div>
+
+      {relatedProducts.length > 0 && (
+        <section>
+          <h2 className="mb-6 text-4xl text-stone-900" style={{ fontFamily: 'var(--font-script)' }}>Похожие товары</h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {relatedProducts.map((related) => (
+              <ProductCard key={related.id} product={related} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

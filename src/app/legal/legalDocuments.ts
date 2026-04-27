@@ -1,4 +1,4 @@
-export type LegalDocumentKey = 'oferta' | 'privacy' | 'consent' | 'terms';
+﻿export type LegalDocumentKey = 'oferta' | 'privacy' | 'consent' | 'terms';
 
 export interface LegalDocumentMeta {
   key: LegalDocumentKey;
@@ -14,7 +14,7 @@ export const COMPANY_DETAILS = {
   inn: '911104302915',
   ogrnip: '325911200017412',
   address: '298312, Россия, Республика Крым, г. Керчь',
-  email: 'natali.glebova95@mail.ru',
+  email: 'sales@mossybloom.ru',
   phone: '+7 915 337-76-90',
   bank: 'ООО «Банк Точка»',
   account: '40802810120000564875',
@@ -63,3 +63,4 @@ export function getLegalDocumentByKey(key: LegalDocumentKey): LegalDocumentMeta 
   }
   return doc;
 }
+

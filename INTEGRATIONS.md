@@ -1,4 +1,4 @@
-# Integrations Setup (RU)
+﻿# Integrations Setup (RU)
 
 ## Что реализовано
 
@@ -47,11 +47,11 @@
 
 - `YOOKASSA_SHOP_ID`
 - `YOOKASSA_SECRET_KEY`
-- `PUBLIC_BASE_URL=https://sara-flowers.ru`
+- `PUBLIC_BASE_URL=https://mossybloom.ru`
 
 В YooKassa настройте webhook:
 
-- URL: `https://sara-flowers.ru/api/payments/webhook`
+- URL: `https://mossybloom.ru/api/payments/webhook`
 - событие: `payment.succeeded`
 
 ## 4) Telegram Bot
@@ -78,11 +78,11 @@
 - Google:
   - `GOOGLE_CLIENT_ID`
   - `GOOGLE_CLIENT_SECRET`
-  - `GOOGLE_REDIRECT_URI=https://sara-flowers.ru/api/auth/oauth/google/callback`
+  - `GOOGLE_REDIRECT_URI=https://mossybloom.ru/api/auth/oauth/google/callback`
 - Яндекс:
   - `YANDEX_CLIENT_ID`
   - `YANDEX_CLIENT_SECRET`
-  - `YANDEX_REDIRECT_URI=https://sara-flowers.ru/api/auth/oauth/yandex/callback`
+  - `YANDEX_REDIRECT_URI=https://mossybloom.ru/api/auth/oauth/yandex/callback`
 
 После OAuth пользователь возвращается в `/account` уже авторизованным.
 
@@ -103,3 +103,71 @@
    - `npm run dev`
 
 Vite проксирует `/api/*` на `http://127.0.0.1:8787`.
+
+## 8) DaData (��������� ������ � checkout)
+
+���������:
+
+- `DADATA_API_KEY`
+
+Frontend �������� `/api/dadata/address-suggestions`, � ������ ���������� ������ � DaData.
+���� DaData �������� ������ �� ������� � �� ������ � �������.
+
+## 9) Strapi CMS (�������� CMS)
+
+- Strapi ������ ���������� � `strapi-cms/`.
+- ������� �������� ������ CMS ����� `GET http://127.0.0.1:1337/api/public-cms`.
+- ��������� CMS ������������� ����� env:
+  - `VITE_CMS_PROVIDER=strapi` (�� ���������, ������ CMS ���������)
+  - `VITE_CMS_PROVIDER=legacy` (��������� fallback �� localStorage CMS)
+
+������ Strapi:
+
+- `npm run dev:cms`
+
+����� ������� ������� seed-������� ������������� ������������� � Strapi �� legacy-���������.
+
+## 10) Подтверждение email кодом (6 цифр)
+
+### Что добавлено
+
+- Поле пользователя: `email_verified` (`boolean`)
+- Таблица кодов: `email_verification_codes`
+- Endpoints:
+  - `POST /api/auth/verify-email-code`
+  - `POST /api/auth/resend-email-code`
+- Обновлённые flow:
+  - `POST /api/auth/register` теперь создаёт пользователя с `email_verified=false`, отправляет код и возвращает `requiresEmailVerification=true`
+  - `POST /api/auth/login` блокирует вход для не подтверждённого email и возвращает `requiresEmailVerification=true`
+
+### Правила безопасности
+
+- Код: 6 цифр
+- TTL: 10 минут
+- Максимум 5 попыток на код
+- Повторная отправка: не чаще 1 раза в 60 секунд
+- Ограничение resend: максимум 5 запросов в час на email и IP
+- Ограничение verify: ограничение по IP в час
+- Хранится только `code_hash`, а не открытый код
+- Старые активные коды инвалидируются при создании нового
+
+### Используемый email provider
+
+Используется текущий provider проекта (Unisender), отдельный SMTP не подключается.
+
+Нужные env:
+
+- `UNISENDER_API_KEY`
+- `UNISENDER_SENDER_EMAIL`
+- `UNISENDER_SENDER_NAME`
+- `UNISENDER_API_URL` (опционально)
+- `EMAIL_CODE_HASH_SECRET` (опционально, иначе используется `JWT_SECRET`)
+
+### Как протестировать локально
+
+1. Зарегистрируйте пользователя с email через форму `/profile`.
+2. API вернёт `requiresEmailVerification=true`, UI покажет форму ввода кода.
+3. Введите 6-значный код из письма.
+4. После успешной проверки `email_verified` станет `true`.
+5. Для повторной отправки нажмите «Отправить код повторно» (таймер 60с).
+

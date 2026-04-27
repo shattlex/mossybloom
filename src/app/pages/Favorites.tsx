@@ -14,7 +14,7 @@ export function Favorites() {
   const favoriteProducts = products.filter((product) => favoriteIds.includes(product.id));
 
   return (
-    <div className="min-h-screen pt-60 pb-20">
+    <div className="min-h-screen pb-16 md:pb-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
           <h1 className="text-5xl sm:text-6xl font-light italic mb-4" style={{ fontFamily: 'var(--font-script)' }}>
@@ -70,4 +70,5 @@ export function Favorites() {
     </div>
   );
 }
+
 

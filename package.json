@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "dev:api": "node --watch server/index.js",
+    "dev:cms": "cd strapi-cms && ..\\.tools\\node24-full\\node-v24.11.0-win-x64\\node.exe .\\node_modules\\@strapi\\strapi\\bin\\strapi.js develop",
+    "start:cms": "npm run dev:cms",
+    "start:cms:prod": "cd strapi-cms && ..\\.tools\\node24-full\\node-v24.11.0-win-x64\\node.exe .\\node_modules\\@strapi\\strapi\\bin\\strapi.js build && ..\\.tools\\node24-full\\node-v24.11.0-win-x64\\node.exe .\\node_modules\\@strapi\\strapi\\bin\\strapi.js start",
     "build": "vite build",
     "preview": "vite preview",
     "start:api": "node server/index.js"
@@ -81,6 +84,8 @@
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.7.0",
+    "png-to-ico": "^3.0.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "4.1.12",
     "typescript": "5.7.3",
     "vite": "^6.4.1"

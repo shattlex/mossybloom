@@ -1,454 +1,368 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
-import { CreditCard, Wallet, Check } from 'lucide-react';
-import { useCart } from '../context/CartContext';
-import { Link, useSearchParams } from 'react-router';
-import { createCashOrder, createPayment, me } from '../api/client';
+﻿import { CheckCircle2, Circle, CreditCard, Lock, MapPin } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
+import { calculateDelivery, createCashOrder, createPayment, type DeliveryCalculation } from "../api/client";
+import { AddressAutocompleteInput } from "../components/AddressAutocompleteInput";
+import { useCart } from "../context/CartContext";
 
 export function Checkout() {
-  const { items, total, clearCart } = useCart();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [recipientMode, setRecipientMode] = useState<'self' | 'other'>('self');
-  const [consents, setConsents] = useState({
-    offerAccepted: false,
-    personalDataAccepted: false,
-    marketingAccepted: false
-  });
-  const [consentError, setConsentError] = useState('');
+  const { items, total, clearCart, orderExtras, clearOrderExtras, promo, clearPromo } = useCart();
 
-  const [formData, setFormData] = useState({
-    payerName: '',
-    payerPhone: '',
-    payerEmail: '',
-    recipientName: '',
-    recipientPhone: '',
-    recipientEmail: '',
-    address: '',
-    paymentMethod: 'card',
-    comment: ''
-  });
-
-  const isPaymentSuccess = searchParams.get('payment') === 'success';
-  const successOrderId = searchParams.get('orderId');
+  const [recipientMode, setRecipientMode] = useState<"self" | "other">("self");
+  const [payer, setPayer] = useState({ name: "", phone: "", email: "" });
+  const [recipient, setRecipient] = useState({ name: "", phone: "", email: "" });
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryInfo, setDeliveryInfo] = useState<DeliveryCalculation | null>(null);
+  const [deliveryError, setDeliveryError] = useState("");
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [orderComment, setOrderComment] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("card");
+  const [consents, setConsents] = useState({ offerAccepted: false, personalDataAccepted: false, marketingAccepted: false });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [successOrderId, setSuccessOrderId] = useState("");
+  const paymentResult = searchParams.get("payment");
+  const returnOrderId = searchParams.get("orderId") || "";
+  const safeItems = useMemo(() => items.filter((item) => Boolean(item && item.id)), [items]);
 
   useEffect(() => {
-    if (!isPaymentSuccess) return;
-    setOrderPlaced(true);
-    clearCart();
-  }, [clearCart, isPaymentSuccess]);
+    if (safeItems.length === 0) {
+      setSuccessOrderId("");
+    }
+  }, [safeItems.length]);
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const resp = await me();
-        setFormData((prev) => ({
-          ...prev,
-          payerName: resp.user.name || prev.payerName,
-          payerPhone: resp.user.phone || prev.payerPhone,
-          payerEmail: resp.user.email || prev.payerEmail,
-          address: resp.user.default_delivery_address || prev.address
-        }));
-      } catch {
-        // Non-authenticated checkout remains available
-      }
-    })();
-  }, []);
-
-  const orderNumber = useMemo(() => {
-    if (successOrderId) return successOrderId;
-    return `SF${Math.floor(Math.random() * 10000)}`;
-  }, [successOrderId]);
-
-  const hasRequiredConsents = consents.offerAccepted && consents.personalDataAccepted;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    if (!hasRequiredConsents) {
-      setConsentError('Для оформления заказа нужно принять оферту и согласие на обработку персональных данных.');
+    const address = deliveryAddress.trim();
+    if (address.length < 5) {
+      setDeliveryInfo(null);
+      setDeliveryError("");
+      setDeliveryLoading(false);
       return;
     }
 
-    setConsentError('');
-
-    if (formData.paymentMethod === 'cash') {
+    let cancelled = false;
+    const timeout = window.setTimeout(async () => {
       try {
-        setIsSubmitting(true);
-        const order = await createCashOrder({
-          payer: {
-            name: formData.payerName,
-            phone: formData.payerPhone,
-            email: formData.payerEmail
-          },
-          recipientMode,
-          recipient: {
-            name: recipientMode === 'other' ? formData.recipientName : formData.payerName,
-            phone: recipientMode === 'other' ? formData.recipientPhone : formData.payerPhone,
-            email: recipientMode === 'other' ? formData.recipientEmail : formData.payerEmail
-          },
-          items: items.map((item) => ({
-            id: item.id,
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-            image: item.image
-          })),
-          total,
-          deliveryAddress: formData.address,
-          orderComment: formData.comment,
-          consents: {
-            offerAccepted: consents.offerAccepted,
-            personalDataAccepted: consents.personalDataAccepted,
-            marketingAccepted: consents.marketingAccepted,
-            acceptedAt: new Date().toISOString()
-          }
-        });
-
-        setOrderPlaced(true);
-        setTimeout(() => {
-          clearCart();
-          window.history.replaceState({}, '', `/checkout?payment=success&orderId=${encodeURIComponent(order.orderId)}`);
-        }, 500);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Не удалось оформить заказ.';
-        alert(`Ошибка: ${message}`);
+        setDeliveryLoading(true);
+        setDeliveryError("");
+        const info = await calculateDelivery(address);
+        if (!cancelled) {
+          setDeliveryInfo(info);
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setDeliveryInfo(null);
+          setDeliveryError(requestError instanceof Error ? requestError.message : "Не удалось рассчитать доставку.");
+        }
       } finally {
-        setIsSubmitting(false);
+        if (!cancelled) {
+          setDeliveryLoading(false);
+        }
       }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [deliveryAddress]);
+
+  const deliveryCost = deliveryInfo?.deliveryPrice ?? 0;
+  const discountAmount = Math.min(promo.isApplied ? promo.discountAmount : 0, total);
+  const discountedSubtotal = Math.max(0, total - discountAmount);
+  const grandTotal = discountedSubtotal + deliveryCost;
+
+  const checkoutItems = useMemo(
+    () =>
+      safeItems.map((item) => ({
+        id: item.id,
+        name: `${item.title || item.name || "Букет"} (${item.selectedSize || "M"})`,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image
+      })),
+    [safeItems]
+  );
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (safeItems.length === 0) {
+      setError("Корзина пуста.");
+      return;
+    }
+
+    if (!payer.name.trim() || !payer.phone.trim()) {
+      setError("Заполните имя и телефон плательщика.");
+      return;
+    }
+
+    if (recipientMode === "other" && (!recipient.name.trim() || !recipient.phone.trim())) {
+      setError("Заполните имя и телефон получателя.");
+      return;
+    }
+
+    if (!deliveryAddress.trim()) {
+      setError("Укажите адрес доставки.");
+      return;
+    }
+
+    if (!consents.offerAccepted || !consents.personalDataAccepted) {
+      setError("Подтвердите обязательные согласия для оформления заказа.");
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      const payment = await createPayment({
-        payer: {
-          name: formData.payerName,
-          phone: formData.payerPhone,
-          email: formData.payerEmail
-        },
+      setSubmitting(true);
+      setError("");
+
+      const recipientPayload = recipientMode === "self" ? payer : recipient;
+      const payload = {
+        payer,
+        recipient: recipientPayload,
         recipientMode,
-        recipient: {
-          name: recipientMode === 'other' ? formData.recipientName : formData.payerName,
-          phone: recipientMode === 'other' ? formData.recipientPhone : formData.payerPhone,
-          email: recipientMode === 'other' ? formData.recipientEmail : formData.payerEmail
-        },
-        items: items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          image: item.image
-        })),
-        total,
-        deliveryAddress: formData.address,
-        orderComment: formData.comment,
+        items: checkoutItems,
+        total: grandTotal,
+        deliveryAmount: deliveryCost,
+        promoCode: promo.isApplied ? promo.code : undefined,
+        deliveryAddress,
+        orderComment,
+        extras: orderExtras,
         consents: {
           offerAccepted: consents.offerAccepted,
           personalDataAccepted: consents.personalDataAccepted,
           marketingAccepted: consents.marketingAccepted,
           acceptedAt: new Date().toISOString()
         }
-      });
+      };
 
-      if (!payment.confirmationUrl) {
-        throw new Error('Сервис оплаты не вернул ссылку на подтверждение.');
+      if (paymentMethod === "card") {
+        const result = await createPayment(payload);
+        clearCart();
+        clearOrderExtras();
+        clearPromo();
+        if (result.confirmationUrl) {
+          window.location.href = result.confirmationUrl;
+          return;
+        }
+        setSuccessOrderId(result.orderId);
+      } else {
+        const result = await createCashOrder(payload);
+        clearCart();
+        clearOrderExtras();
+        clearPromo();
+        setSuccessOrderId(result.orderId);
       }
-
-      window.location.href = payment.confirmationUrl;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Не удалось создать платеж.';
-      alert(`Ошибка оплаты: ${message}`);
-      setIsSubmitting(false);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Не удалось оформить заказ.");
+    } finally {
+      setSubmitting(false);
     }
-  };
+  }
 
-  if (items.length === 0 && !orderPlaced) {
+  if (successOrderId) {
+    return <Navigate to={`/order-success?orderId=${encodeURIComponent(successOrderId)}&payment=cash`} replace />;
+  }
+
+  if (paymentResult === "failed") {
     return (
-      <div className="min-h-screen pt-60 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-light italic mb-4" style={{ fontFamily: 'var(--font-script)' }}>
-            Корзина пуста
-          </h2>
-          <Link to="/catalog" className="text-primary hover:underline">
-            Вернуться в каталог
-          </Link>
+      <div className="max-w-[900px] mx-auto px-6 md:px-12 py-24 w-full">
+        <div className="bg-white border border-stone-200 rounded-3xl p-10 md:p-14 text-center">
+          <h1 className="text-4xl font-serif mb-4">Оплата отменена</h1>
+          <p className="text-stone-600 mb-2">Вы отменили оплату на стороне платёжного сервиса.</p>
+          {returnOrderId ? <p className="text-stone-500 mb-8">Номер заказа: <strong>{returnOrderId}</strong></p> : null}
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link to="/cart" className="bg-stone-900 text-white rounded-xl px-8 py-4 text-[12px] tracking-[0.2em] uppercase font-medium hover:bg-[#C2958B] transition-colors">
+              Вернуться в корзину
+            </Link>
+            <button onClick={() => navigate("/checkout")} className="border border-stone-300 rounded-xl px-8 py-4 text-[12px] tracking-[0.2em] uppercase font-medium hover:border-stone-900 transition-colors">
+              Попробовать снова
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (orderPlaced) {
-    return (
-      <div className="min-h-screen pt-60 pb-20">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center bg-white rounded-2xl p-12 border border-gray-200"
-          >
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-green-600" />
-            </div>
-            <h2 className="text-4xl font-light italic mb-4" style={{ fontFamily: 'var(--font-script)' }}>
-              Заказ оформлен
-            </h2>
-            <p className="text-gray-600 mb-2" style={{ fontFamily: 'var(--font-sans)' }}>
-              Номер заказа: <span className="font-medium">#{orderNumber}</span>
-            </p>
-            <p className="text-gray-600 mb-4" style={{ fontFamily: 'var(--font-sans)' }}>
-              Статус заказа и чек будут доступны в личном кабинете.
-            </p>
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              <Link to="/" className="inline-block px-8 py-4 bg-primary text-white rounded-full hover:bg-opacity-90 transition-all" style={{ fontFamily: 'var(--font-sans)' }}>
-                На главную
-              </Link>
-              <Link to="/account" className="inline-block px-8 py-4 border border-gray-200 rounded-full hover:bg-gray-50 transition-all" style={{ fontFamily: 'var(--font-sans)' }}>
-                В личный кабинет
-              </Link>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
+  if (paymentResult === "success") {
+    return <Navigate to={`/order-success${returnOrderId ? `?orderId=${encodeURIComponent(returnOrderId)}&payment=card` : "?payment=card"}`} replace />;
   }
 
   return (
-    <div className="min-h-screen pt-60 pb-20" style={{ fontFamily: 'var(--font-sans)' }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-5xl font-light italic mb-12"
-          style={{ fontFamily: 'var(--font-script)' }}
-        >
-          Оформление заказа
-        </motion.h1>
+    <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-16 md:py-24 w-full flex-1">
+      <div className="text-[11px] uppercase tracking-widest text-stone-400 mb-12 flex flex-wrap items-center gap-4">
+        <Link to="/" className="hover:text-stone-900 transition-colors">Главная</Link>
+        <span className="w-[3px] h-[3px] bg-stone-300 rounded-full" />
+        <span className="text-stone-900 font-medium">Оформление</span>
+      </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-white rounded-2xl p-8 border border-gray-200 space-y-4">
-              <h3 className="font-medium text-xl mb-2">Данные плательщика</h3>
+      <h1 className="text-5xl md:text-6xl font-serif text-stone-900 tracking-tight mb-16 leading-none">Оформление</h1>
 
-              <input
-                type="text"
-                required
-                value={formData.payerName}
-                onChange={(e) => setFormData({ ...formData, payerName: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                placeholder="Имя плательщика"
-              />
-              <input
-                type="tel"
-                required
-                value={formData.payerPhone}
-                onChange={(e) => setFormData({ ...formData, payerPhone: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                placeholder="+7 (999) 123-45-67"
-              />
-              <input
-                type="email"
-                value={formData.payerEmail}
-                onChange={(e) => setFormData({ ...formData, payerEmail: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                placeholder="email@example.com"
-              />
+      <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-start">
+        <div className="flex-1 w-full lg:max-w-[780px] flex flex-col gap-12 lg:gap-16">
+          <section className="bg-white p-8 md:p-14 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-stone-100">
+            <div className="flex items-center gap-6 mb-12 pb-8 border-b border-stone-100">
+              <span className="bg-[#FAFAFA] text-[#C2958B] w-12 h-12 rounded-full flex items-center justify-center text-xl font-serif border border-stone-200">1</span>
+              <h2 className="text-3xl font-serif text-stone-900">Получатель</h2>
+            </div>
 
-              <h3 className="font-medium text-xl mb-2 pt-2">Кто получатель</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setRecipientMode('self')}
-                  className={`p-4 border-2 rounded-xl transition-all ${recipientMode === 'self' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
-                >
-                  Плательщик и получатель один человек
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRecipientMode('other')}
-                  className={`p-4 border-2 rounded-xl transition-all ${recipientMode === 'other' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}
-                >
-                  Отправить другому человеку
-                </button>
+            <div className="flex gap-4 mb-10">
+              <button type="button" onClick={() => setRecipientMode("self")} className={`flex-1 py-5 rounded-xl border font-medium tracking-widest uppercase text-[11px] transition-all ${recipientMode === "self" ? "border-[#C2958B] text-[#C2958B]" : "border-stone-200 text-stone-500"}`}>
+                Я сам(а)
+              </button>
+              <button type="button" onClick={() => setRecipientMode("other")} className={`flex-1 py-5 rounded-xl border font-medium tracking-widest uppercase text-[11px] transition-all ${recipientMode === "other" ? "border-[#C2958B] text-[#C2958B]" : "border-stone-200 text-stone-500"}`}>
+                Другой человек
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <input value={payer.name} onChange={(e) => setPayer((prev) => ({ ...prev, name: e.target.value }))} placeholder="Имя плательщика" className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl p-5" required />
+              <input value={payer.phone} onChange={(e) => setPayer((prev) => ({ ...prev, phone: e.target.value }))} placeholder="Телефон плательщика" className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl p-5" required />
+              <input value={payer.email} onChange={(e) => setPayer((prev) => ({ ...prev, email: e.target.value }))} placeholder="Email плательщика" className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl p-5 md:col-span-2" />
+            </div>
+
+            {recipientMode === "other" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <input value={recipient.name} onChange={(e) => setRecipient((prev) => ({ ...prev, name: e.target.value }))} placeholder="Имя получателя" className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl p-5" required />
+                <input value={recipient.phone} onChange={(e) => setRecipient((prev) => ({ ...prev, phone: e.target.value }))} placeholder="Телефон получателя" className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl p-5" required />
+                <input value={recipient.email} onChange={(e) => setRecipient((prev) => ({ ...prev, email: e.target.value }))} placeholder="Email получателя" className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl p-5 md:col-span-2" />
               </div>
+            )}
+          </section>
 
-              {recipientMode === 'other' && (
-                <div className="space-y-3 pt-2">
-                  <input
-                    type="text"
-                    required
-                    value={formData.recipientName}
-                    onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                    placeholder="Имя получателя"
-                  />
-                  <input
-                    type="tel"
-                    required
-                    value={formData.recipientPhone}
-                    onChange={(e) => setFormData({ ...formData, recipientPhone: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                    placeholder="Телефон получателя"
-                  />
-                  <input
-                    type="email"
-                    value={formData.recipientEmail}
-                    onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                    placeholder="Email получателя (необязательно)"
-                  />
+          <section className="bg-white p-8 md:p-14 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-stone-100">
+            <div className="flex items-center gap-6 mb-12 pb-8 border-b border-stone-100">
+              <span className="bg-[#FAFAFA] text-[#C2958B] w-12 h-12 rounded-full flex items-center justify-center text-xl font-serif border border-stone-200">2</span>
+              <h2 className="text-3xl font-serif text-stone-900">Доставка</h2>
+            </div>
+
+            <div className="flex items-center gap-4 mb-8 p-6 border border-[#E6EDE8]/60 rounded-2xl bg-[#FAFAFA] text-[15px]">
+              <div className="bg-white p-3 rounded-full text-[#7A8B7D] border border-stone-100">
+                <MapPin size={18} strokeWidth={1.5} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] tracking-[0.2em] uppercase font-medium text-stone-400 mb-1">Регион</span>
+                <span className="text-stone-900 font-medium tracking-wide">Москва и МО</span>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <AddressAutocompleteInput
+                value={deliveryAddress}
+                onChange={setDeliveryAddress}
+                rows={3}
+                required
+                placeholder="Введите полный адрес доставки"
+                className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl"
+              />
+            </div>
+
+            <textarea
+              value={orderComment}
+              onChange={(e) => setOrderComment(e.target.value)}
+              placeholder="Комментарий к заказу (необязательно)"
+              className="w-full bg-[#FDFDFD] border border-stone-200 rounded-xl p-5 resize-none"
+              rows={3}
+              maxLength={500}
+            />
+
+            <div className="mt-6 text-sm text-stone-600 space-y-1">
+              {deliveryLoading && <p>Рассчитываем стоимость доставки...</p>}
+              {deliveryError && <p className="text-red-600">{deliveryError}</p>}
+              {deliveryInfo && !deliveryLoading && (
+                <p>
+                  Расчёт доставки: {deliveryInfo.deliveryPrice.toLocaleString("ru-RU")} ₽
+                  {deliveryInfo.beltwayDistanceKm !== null ? `, расстояние от МКАД: ${deliveryInfo.beltwayDistanceKm.toFixed(1)} км` : ""}
+                </p>
+              )}
+            </div>
+          </section>
+
+
+          <section className="bg-white p-8 md:p-14 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-stone-100">
+            <div className="flex items-center gap-6 mb-12 pb-8 border-b border-stone-100">
+              <span className="bg-[#FAFAFA] text-[#C2958B] w-12 h-12 rounded-full flex items-center justify-center text-xl font-serif border border-stone-200">3</span>
+              <h2 className="text-3xl font-serif text-stone-900">Оплата</h2>
+            </div>
+
+            <div className="flex flex-col gap-4 mb-8">
+              <button type="button" onClick={() => setPaymentMethod("card")} className={`flex items-center gap-5 border rounded-2xl p-6 cursor-pointer transition-all ${paymentMethod === "card" ? "border-[#C2958B] bg-white" : "border-stone-200"}`}>
+                {paymentMethod === "card" ? <CheckCircle2 size={24} className="text-[#C2958B]" /> : <Circle size={24} className="text-stone-300" />}
+                <CreditCard size={20} className="text-stone-600" />
+                <span className="text-[15px] tracking-wide font-medium text-stone-900">Картой на сайте</span>
+              </button>
+
+              <button type="button" onClick={() => setPaymentMethod("cash")} className={`flex items-center gap-5 border rounded-2xl p-6 cursor-pointer transition-all ${paymentMethod === "cash" ? "border-[#C2958B] bg-white" : "border-stone-200"}`}>
+                {paymentMethod === "cash" ? <CheckCircle2 size={24} className="text-[#C2958B]" /> : <Circle size={24} className="text-stone-300" />}
+                <span className="text-[15px] tracking-wide font-medium text-stone-900">Наличными курьеру</span>
+              </button>
+            </div>
+
+            <div className="space-y-3 text-sm text-stone-600">
+              <label className="flex items-start gap-3">
+                <input type="checkbox" checked={consents.offerAccepted} onChange={(e) => setConsents((prev) => ({ ...prev, offerAccepted: e.target.checked }))} className="mt-1" />
+                <span>Принимаю условия <Link to="/oferta" className="text-[#C2958B] hover:underline">оферты</Link> и <Link to="/terms" className="text-[#C2958B] hover:underline">пользовательского соглашения</Link>, включая уведомление о возможном отличии букета от фото на сайте.</span>
+              </label>
+              <label className="flex items-start gap-3">
+                <input type="checkbox" checked={consents.personalDataAccepted} onChange={(e) => setConsents((prev) => ({ ...prev, personalDataAccepted: e.target.checked }))} className="mt-1" />
+                <span>Даю согласие на обработку персональных данных согласно <Link to="/privacy" className="text-[#C2958B] hover:underline">политике конфиденциальности</Link> и <Link to="/consent" className="text-[#C2958B] hover:underline">согласию на обработку ПДн</Link>.</span>
+              </label>
+              <label className="flex items-start gap-3">
+                <input type="checkbox" checked={consents.marketingAccepted} onChange={(e) => setConsents((prev) => ({ ...prev, marketingAccepted: e.target.checked }))} className="mt-1" />
+                <span>Согласен(а) на получение информационных сообщений и специальных предложений (необязательно).</span>
+              </label>
+            </div>
+          </section>
+
+          {error && <div className="rounded-xl border border-red-200 bg-red-50 text-red-700 px-4 py-3">{error}</div>}
+        </div>
+
+        <div className="w-full lg:w-[440px] flex-shrink-0">
+          <div className="bg-stone-900 p-10 md:p-12 rounded-[2.5rem] flex flex-col gap-10 lg:sticky lg:top-32 shadow-[0_30px_80px_rgba(0,0,0,0.15)] text-white">
+            <h2 className="text-3xl font-serif tracking-tight">Ваш заказ</h2>
+
+            <div className="flex flex-col gap-4 border-b border-white/10 pb-8 max-h-64 overflow-auto pr-2">
+              {safeItems.map((item) => (
+                <div key={`${item.id}-${item.selectedSize}`} className="flex justify-between items-start gap-4">
+                  <span className="text-white/70 text-[14px]">{item.title || item.name || "Букет"} ({item.selectedSize || "M"}) × {item.quantity}</span>
+                  <span className="text-white text-[14px]">{(item.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between font-light tracking-wide text-[15px]">
+                <span className="text-white/60">Товары ({safeItems.length})</span>
+                <span className="text-white">{total.toLocaleString("ru-RU")} ₽</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="flex justify-between font-light tracking-wide text-[15px]">
+                  <span className="text-white/60">Скидка ({promo.discountPercent}%)</span>
+                  <span className="text-emerald-300">−{discountAmount.toLocaleString("ru-RU")} ₽</span>
                 </div>
               )}
-
-              <h3 className="font-medium text-xl mb-2 pt-2">Доставка</h3>
-              <input
-                type="text"
-                required
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary"
-                placeholder="Адрес доставки"
-              />
-
-              <textarea
-                value={formData.comment}
-                onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-primary resize-none"
-                rows={3}
-                placeholder="Комментарий к заказу"
-              />
-
-              <h3 className="font-medium text-xl mb-2 pt-2">Способ оплаты</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, paymentMethod: 'card' })}
-                  className={`flex items-center gap-3 p-4 border-2 rounded-xl transition-all ${
-                    formData.paymentMethod === 'card'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <CreditCard className="w-5 h-5" />
-                  Карта онлайн (YooKassa)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, paymentMethod: 'cash' })}
-                  className={`flex items-center gap-3 p-4 border-2 rounded-xl transition-all ${
-                    formData.paymentMethod === 'cash'
-                      ? 'border-primary bg-primary/5'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Wallet className="w-5 h-5" />
-                  Наличными курьеру
-                </button>
+              <div className="flex justify-between font-light tracking-wide text-[15px] pb-10 border-b border-white/10">
+                <span className="text-white/60">Доставка</span>
+                <span className="text-white">{deliveryCost.toLocaleString("ru-RU")} ₽</span>
               </div>
             </div>
 
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl p-6 border border-gray-200 sticky top-32">
-                <h3 className="font-medium text-xl mb-6">Ваш заказ</h3>
-                <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
-                  {items.map((item) => (
-                    <div key={`${item.id}-${item.selectedSize}`} className="flex gap-3">
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium truncate">{item.name}</h4>
-                        <p className="text-xs text-gray-500">
-                          {item.sizes.find((s) => s.value === item.selectedSize)?.label} ? {item.quantity}
-                        </p>
-                        <p className="text-sm font-medium mt-1">
-                          {(item.price * item.quantity).toLocaleString('ru-RU')} ?
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-t border-gray-200 pt-4 space-y-3 mb-5">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Товары</span>
-                    <span>{total.toLocaleString('ru-RU')} ?</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Доставка</span>
-                    <span className="text-green-600">Бесплатно</span>
-                  </div>
-                  <div className="flex justify-between text-xl font-medium pt-3 border-t border-gray-200">
-                    <span>К оплате</span>
-                    <span>{total.toLocaleString('ru-RU')} ?</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-5 text-sm">
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={consents.offerAccepted}
-                      onChange={(e) => {
-                        setConsents((prev) => ({ ...prev, offerAccepted: e.target.checked }));
-                        setConsentError('');
-                      }}
-                      className="mt-1"
-                    />
-                    <span>
-                      Я ознакомлен(а) и согласен(на) с условиями{' '}
-                      <Link to="/oferta" className="text-primary hover:underline">Публичной оферты</Link>.
-                    </span>
-                  </label>
-
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={consents.personalDataAccepted}
-                      onChange={(e) => {
-                        setConsents((prev) => ({ ...prev, personalDataAccepted: e.target.checked }));
-                        setConsentError('');
-                      }}
-                      className="mt-1"
-                    />
-                    <span>
-                      Я даю <Link to="/consent" className="text-primary hover:underline">согласие на обработку персональных данных</Link> и подтверждаю ознакомление с{' '}
-                      <Link to="/privacy" className="text-primary hover:underline">Политикой конфиденциальности</Link>.
-                    </span>
-                  </label>
-
-                  <label className="flex items-start gap-3 text-gray-600">
-                    <input
-                      type="checkbox"
-                      checked={consents.marketingAccepted}
-                      onChange={(e) => setConsents((prev) => ({ ...prev, marketingAccepted: e.target.checked }))}
-                      className="mt-1"
-                    />
-                    <span>Согласен(на) получать рекламные и информационные сообщения (необязательно).</span>
-                  </label>
-                </div>
-
-                {consentError && (
-                  <p className="text-sm text-red-600 mb-4" role="alert">
-                    {consentError}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !hasRequiredConsents}
-                  className="w-full px-8 py-4 bg-primary text-white rounded-full hover:bg-opacity-90 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
-                >
-                  {isSubmitting ? 'Переходим к оплате...' : 'Подтвердить заказ'}
-                </button>
-              </div>
+            <div className="flex justify-between items-end mb-4 mt-2">
+              <span className="text-[11px] uppercase tracking-widest font-medium text-white/50">Итого к оплате</span>
+              <span className="text-4xl font-serif tracking-tight text-white">{grandTotal.toLocaleString("ru-RU")} ₽</span>
             </div>
+
+            <button type="submit" disabled={submitting || safeItems.length === 0} className="w-full bg-[#C2958B] text-white rounded-xl py-6 flex items-center justify-center gap-4 text-[13px] tracking-[0.2em] uppercase font-medium hover:bg-white hover:text-stone-900 transition-all duration-500 group shadow-lg mt-2 disabled:opacity-70 disabled:cursor-not-allowed">
+              <Lock size={16} strokeWidth={1.5} className="group-hover:text-stone-900 transition-colors" />
+              {submitting ? "Оформляем..." : paymentMethod === "card" ? "Оплатить заказ" : "Подтвердить заказ"}
+            </button>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }
+
 

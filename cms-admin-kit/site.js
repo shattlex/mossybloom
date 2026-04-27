@@ -1,4 +1,4 @@
-﻿import { loadContent } from "./content-store.js";
+import { loadContent } from "./content-store.js";
 
 const app = document.getElementById("app");
 const nav = document.getElementById("site-nav");

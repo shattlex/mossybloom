@@ -1,4 +1,4 @@
-﻿import { loadContent, saveContent, makeId } from "./content-store.js";
+import { loadContent, saveContent, makeId } from "./content-store.js";
 
 let state = loadContent();
 let selectedPageId = state.pages[0]?.id || null;
