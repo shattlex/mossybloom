@@ -25,6 +25,7 @@ export function Footer() {
             <span className="font-medium text-white tracking-widest uppercase text-xs mb-2">Сервис</span>
             <Link to="/delivery" className="text-stone-400 hover:text-white transition-colors">Доставка и оплата</Link>
             <Link to="/faq" className="text-stone-400 hover:text-white transition-colors">Вопросы и ответы</Link>
+            <Link to="/contacts" className="text-stone-400 hover:text-white transition-colors">Контакты</Link>
             <Link to="/account" className="text-stone-400 hover:text-white transition-colors">Личный кабинет</Link>
           </div>
 

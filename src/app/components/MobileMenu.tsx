@@ -21,6 +21,7 @@ function iconFor(path: string) {
   if (path === '/delivery') return <Package className="h-5 w-5" />;
   if (path === '/favorites') return <Heart className="h-5 w-5" />;
   if (path === '/account') return <UserRound className="h-5 w-5" />;
+  if (path === '/contacts') return <Info className="h-5 w-5" />;
   return <Grid className="h-5 w-5" />;
 }
 

@@ -18,6 +18,7 @@ export function Header() {
     { to: "/bouquet-builder", label: "Конструктор" },
     { to: "/delivery", label: "Доставка" },
     { to: "/about", label: "О нас" },
+    { to: "/contacts", label: "Контакты" },
     { to: "/account", label: "Личный кабинет" }
   ];
 
@@ -43,6 +44,7 @@ export function Header() {
               <Link to="/bouquet-builder" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">Конструктор</Link>
               <Link to="/delivery" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">Доставка</Link>
               <Link to="/about" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">О нас</Link>
+              <Link to="/contacts" className="whitespace-nowrap hover:text-[#C2958B] transition-colors">Контакты</Link>
             </nav>
           </div>
 
