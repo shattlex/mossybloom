@@ -25,13 +25,11 @@ export function Footer() {
             <span className="font-medium text-white tracking-widest uppercase text-xs mb-2">Сервис</span>
             <Link to="/delivery" className="text-stone-400 hover:text-white transition-colors">Доставка и оплата</Link>
             <Link to="/faq" className="text-stone-400 hover:text-white transition-colors">Вопросы и ответы</Link>
-            <Link to="/contacts" className="text-stone-400 hover:text-white transition-colors">Контакты</Link>
             <Link to="/account" className="text-stone-400 hover:text-white transition-colors">Личный кабинет</Link>
           </div>
 
           <div className="flex flex-col gap-6 text-[14px] font-light tracking-wide">
             <span className="font-medium text-white tracking-widest uppercase text-xs mb-2">Документы</span>
-            <a href="tel:+79990000000" className="text-stone-300 text-lg hover:text-white transition-colors">+7 (999) 000-00-00</a>
             <a href="mailto:hello@mossybloom.ru" className="text-[#C2958B] hover:text-white transition-colors">hello@mossybloom.ru</a>
             <span className="text-stone-500 mt-2">Ежедневно 09:00 - 21:00</span>
           </div>

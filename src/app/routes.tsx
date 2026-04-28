@@ -26,7 +26,6 @@ export const router = createBrowserRouter([
       { path: "about", Component: InfoPage },
       { path: "faq", Component: InfoPage },
       { path: "guarantee", Component: InfoPage },
-      { path: "contacts", Component: InfoPage },
       { path: "bouquet-builder", Component: BouquetBuilder },
       { path: "profile", Component: Profile },
       { path: "account", Component: Profile },

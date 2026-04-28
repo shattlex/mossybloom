@@ -1,5 +1,5 @@
 ﻿import { motion, AnimatePresence } from 'motion/react';
-import { X, Home, Grid, Package, Phone, Palette, Info, UserRound, Heart } from 'lucide-react';
+import { X, Home, Grid, Package, Palette, Info, UserRound, Heart } from 'lucide-react';
 import { Link } from 'react-router';
 
 interface MobileMenuItem {
@@ -19,7 +19,6 @@ function iconFor(path: string) {
   if (path === '/catalog') return <Grid className="h-5 w-5" />;
   if (path === '/bouquet-builder') return <Palette className="h-5 w-5" />;
   if (path === '/delivery') return <Package className="h-5 w-5" />;
-  if (path === '/contacts') return <Phone className="h-5 w-5" />;
   if (path === '/favorites') return <Heart className="h-5 w-5" />;
   if (path === '/account') return <UserRound className="h-5 w-5" />;
   return <Grid className="h-5 w-5" />;
