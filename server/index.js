@@ -445,6 +445,19 @@ function normalizeBitrixWebhookBase(raw) {
   return trimmed;
 }
 
+function decodeMojibakeIfNeeded(value) {
+  const source = String(value ?? '').trim();
+  if (!source) return '';
+  const looksBroken = /(?:\u00D0.|\u00D1.|\u0420.|\u0421.){2,}/.test(source);
+  if (!looksBroken) return source;
+  try {
+    const decoded = Buffer.from(source, 'latin1').toString('utf8').trim();
+    return decoded || source;
+  } catch {
+    return source;
+  }
+}
+
 function getOAuthRedirectUri(provider) {
   const providerKey = String(provider || '').trim().toLowerCase();
   if (providerKey === 'google') {
@@ -523,7 +536,7 @@ async function sendTelegramMessage(text, options = {}) {
 
   const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({
       chat_id: chatId,
       text,
@@ -2658,7 +2671,12 @@ app.post('/api/contact', async (req, res) => {
       consentTerms
     } = req.body ?? {};
 
-    if (!name || (!phone && !email) || !message) {
+    const normalizedName = decodeMojibakeIfNeeded(name);
+    const normalizedPhone = decodeMojibakeIfNeeded(phone);
+    const normalizedEmail = decodeMojibakeIfNeeded(email);
+    const normalizedMessage = decodeMojibakeIfNeeded(message);
+
+    if (!normalizedName || (!normalizedPhone && !normalizedEmail) || !normalizedMessage) {
       return res.status(400).json({ ok: false, error: 'Р—Р°РїРѕР»РЅРёС‚Рµ РёРјСЏ, СЃРѕРѕР±С‰РµРЅРёРµ Рё С‚РµР»РµС„РѕРЅ РёР»Рё email.' });
     }
 
@@ -2671,11 +2689,11 @@ app.post('/api/contact', async (req, res) => {
 
     const leadPayload = {
       fields: {
-        TITLE: `Р—Р°СЏРІРєР° СЃ СЃР°Р№С‚Р° MossyBloom: ${String(name).trim()}`,
-        NAME: String(name).trim(),
-        PHONE: phone ? [{ VALUE: String(phone).trim(), VALUE_TYPE: 'WORK' }] : [],
-        EMAIL: email ? [{ VALUE: String(email).trim(), VALUE_TYPE: 'WORK' }] : [],
-        COMMENTS: String(message).trim(),
+        TITLE: `Lead from MossyBloom website: ${normalizedName}`,
+        NAME: normalizedName,
+        PHONE: normalizedPhone ? [{ VALUE: normalizedPhone, VALUE_TYPE: 'WORK' }] : [],
+        EMAIL: normalizedEmail ? [{ VALUE: normalizedEmail, VALUE_TYPE: 'WORK' }] : [],
+        COMMENTS: normalizedMessage,
         SOURCE_ID: 'WEB'
       },
       params: { REGISTER_SONET_EVENT: 'Y' }
@@ -2683,7 +2701,7 @@ app.post('/api/contact', async (req, res) => {
 
     const bitrixResponse = await fetch(bitrixUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(leadPayload)
     });
 
