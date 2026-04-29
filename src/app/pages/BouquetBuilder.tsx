@@ -146,7 +146,7 @@ export function BouquetBuilder() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 xl:gap-16">
-        <section className="xl:col-span-8 space-y-8">
+        <section className="order-2 xl:order-1 xl:col-span-8 space-y-8">
           <div className="flex flex-wrap gap-2">
             {colors.map((color) => (
               <button
@@ -208,7 +208,7 @@ export function BouquetBuilder() {
           </div>
         </section>
 
-        <aside className="xl:col-span-4">
+        <aside className="order-1 xl:order-2 xl:col-span-4">
           <div className="bg-white p-8 rounded-[2rem] border border-stone-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] xl:sticky xl:top-32 space-y-6">
             <h2 className="text-3xl font-serif text-stone-900">Ваш букет</h2>
 
@@ -278,3 +278,4 @@ export function BouquetBuilder() {
     </div>
   );
 }
+
