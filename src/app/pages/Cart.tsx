@@ -1,8 +1,20 @@
-import { ArrowRight, Minus, Plus, Tag, Trash2 } from "lucide-react";
+﻿import { ArrowRight, Minus, Plus, Tag, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { validatePromoCode } from "../api/client";
 import { useCart } from "../context/CartContext";
+
+function getConstructorComposition(description?: string): string[] {
+  if (!description) return [];
+  const prefix = "Собран в конструкторе:";
+  if (!description.startsWith(prefix)) return [];
+
+  return description
+    .slice(prefix.length)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 export function Cart() {
   const {
@@ -36,6 +48,7 @@ export function Cart() {
   useEffect(() => {
     if (!promo.isApplied || !promo.code || total <= 0) return;
     let cancelled = false;
+
     void (async () => {
       try {
         const validated = await validatePromoCode({
@@ -43,11 +56,13 @@ export function Cart() {
           subtotal: total
         });
         if (cancelled) return;
+
         if (!validated.valid) {
           clearPromo();
           setPromoError(validated.message || "Промокод больше не действует.");
           return;
         }
+
         setPromo({
           code: validated.code,
           isApplied: true,
@@ -59,6 +74,7 @@ export function Cart() {
         if (!cancelled) setPromoError("Не удалось обновить промокод. Попробуйте ещё раз.");
       }
     })();
+
     return () => {
       cancelled = true;
     };
@@ -82,11 +98,13 @@ export function Cart() {
         code,
         subtotal: total
       });
+
       if (!result.valid) {
         clearPromo();
         setPromoError(result.message || "Промокод недействителен.");
         return;
       }
+
       setPromo({
         code: result.code,
         isApplied: true,
@@ -131,45 +149,61 @@ export function Cart() {
         <div className="flex flex-col xl:flex-row gap-16 xl:gap-24 relative">
           <div className="flex-1 w-full">
             <div className="flex flex-col gap-10 border-t border-stone-200 pt-10">
-              {items.map((item) => (
-                <div key={`${item.id}-${item.selectedSize}`} className="flex flex-col sm:flex-row gap-8 lg:gap-12 border-b border-stone-200 pb-10">
-                  <Link to={`/product/${item.id}`} className="w-full sm:w-[180px] aspect-[4/5] bg-stone-100 rounded-[1.5rem] flex-shrink-0 overflow-hidden border border-stone-100">
-                    <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                  </Link>
+              {items.map((item) => {
+                const compositionItems = getConstructorComposition(item.description);
 
-                  <div className="flex flex-col flex-1 justify-between py-2 gap-6">
-                    <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
-                      <div>
-                        <h3 className="text-2xl font-serif text-stone-900 mb-3">
-                          <Link to={`/product/${item.id}`} className="hover:text-[#C2958B] transition-colors">{item.title}</Link>
-                        </h3>
-                        <p className="text-[13px] tracking-widest uppercase text-stone-500 font-medium mb-6">
-                          Размер: <span className="text-stone-900 font-serif lowercase tracking-normal text-lg ml-1">{item.selectedSize}</span>
-                        </p>
+                return (
+                  <div key={`${item.id}-${item.selectedSize}`} className="flex flex-col sm:flex-row gap-8 lg:gap-12 border-b border-stone-200 pb-10">
+                    <Link to={`/product/${item.id}`} className="w-full sm:w-[180px] aspect-[4/5] bg-stone-100 rounded-[1.5rem] flex-shrink-0 overflow-hidden border border-stone-100">
+                      <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                    </Link>
 
-                        <div className="flex items-center gap-6 border border-stone-200 rounded-full w-fit px-5 py-3 bg-white shadow-sm">
-                          <button onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)} className="text-stone-400 hover:text-stone-900 transition-colors" aria-label="Уменьшить">
-                            <Minus size={16} strokeWidth={1.5} />
-                          </button>
-                          <span className="text-[15px] font-medium w-8 text-center text-stone-900">{item.quantity}</span>
-                          <button onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)} className="text-stone-400 hover:text-stone-900 transition-colors" aria-label="Увеличить">
-                            <Plus size={16} strokeWidth={1.5} />
+                    <div className="flex flex-col flex-1 justify-between py-2 gap-6">
+                      <div className="flex flex-col md:flex-row justify-between md:items-start gap-4">
+                        <div>
+                          <h3 className="text-2xl font-serif text-stone-900 mb-3">
+                            <Link to={`/product/${item.id}`} className="hover:text-[#C2958B] transition-colors">{item.title}</Link>
+                          </h3>
+
+                          <p className="text-[13px] tracking-widest uppercase text-stone-500 font-medium mb-4">
+                            Размер: <span className="text-stone-900 font-serif lowercase tracking-normal text-lg ml-1">{item.selectedSize}</span>
+                          </p>
+
+                          {compositionItems.length > 0 && (
+                            <div className="mb-5 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
+                              <p className="mb-2 text-[11px] uppercase tracking-widest text-stone-500">Состав букета</p>
+                              <ul className="space-y-1 text-sm text-stone-700">
+                                {compositionItems.map((part) => (
+                                  <li key={`${item.id}-${item.selectedSize}-${part}`}>{part}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          <div className="flex items-center gap-6 border border-stone-200 rounded-full w-fit px-5 py-3 bg-white shadow-sm">
+                            <button onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity - 1)} className="text-stone-400 hover:text-stone-900 transition-colors" aria-label="Уменьшить">
+                              <Minus size={16} strokeWidth={1.5} />
+                            </button>
+                            <span className="text-[15px] font-medium w-8 text-center text-stone-900">{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, item.selectedSize, item.quantity + 1)} className="text-stone-400 hover:text-stone-900 transition-colors" aria-label="Увеличить">
+                              <Plus size={16} strokeWidth={1.5} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col md:items-end justify-between gap-6">
+                          <span className="text-2xl font-serif text-stone-900 tracking-tight whitespace-nowrap">{(item.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
+
+                          <button onClick={() => removeFromCart(item.id, item.selectedSize)} className="text-[11px] tracking-widest uppercase font-medium text-stone-400 hover:text-[#C2958B] flex items-center gap-2 transition-colors">
+                            <Trash2 size={14} strokeWidth={1.5} />
+                            Удалить
                           </button>
                         </div>
                       </div>
-
-                      <div className="flex flex-col md:items-end justify-between gap-6">
-                        <span className="text-2xl font-serif text-stone-900 tracking-tight whitespace-nowrap">{(item.price * item.quantity).toLocaleString("ru-RU")} ₽</span>
-
-                        <button onClick={() => removeFromCart(item.id, item.selectedSize)} className="text-[11px] tracking-widest uppercase font-medium text-stone-400 hover:text-[#C2958B] flex items-center gap-2 transition-colors">
-                          <Trash2 size={14} strokeWidth={1.5} />
-                          Удалить
-                        </button>
-                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -182,6 +216,7 @@ export function Cart() {
                   <span className="text-stone-500">Товары ({itemCount})</span>
                   <span className="text-stone-900 font-medium">{total.toLocaleString("ru-RU")} ₽</span>
                 </div>
+
                 <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
                   <div className="mb-2 flex items-center gap-2 text-sm text-stone-700">
                     <Tag size={14} />
@@ -204,7 +239,7 @@ export function Cart() {
                     </button>
                   </div>
                   {promo.isApplied && (
-                    <div className="mt-2 flex items-center justify-between text-sm text-emerald-700">
+                    <div className="mt-2 flex items-center justify-between text-sm text-emerald-700 gap-3">
                       <span>{promo.message || `Промокод ${promo.code} применён`}</span>
                       <button type="button" onClick={handleClearPromo} className="text-stone-500 hover:text-stone-900">
                         Убрать
@@ -213,12 +248,14 @@ export function Cart() {
                   )}
                   {!promo.isApplied && promoError && <p className="mt-2 text-sm text-red-600">{promoError}</p>}
                 </div>
+
                 {discount > 0 && (
                   <div className="flex justify-between tracking-wide">
                     <span className="text-stone-500">Скидка ({promo.discountPercent}%)</span>
                     <span className="font-medium text-emerald-700">−{discount.toLocaleString("ru-RU")} ₽</span>
                   </div>
                 )}
+
                 <div className="flex justify-between tracking-wide pb-10 border-b border-stone-200">
                   <span className="text-stone-500">Доставка</span>
                   <span className="text-stone-900 font-medium">Бесплатно (в пределах МКАД)</span>
@@ -244,4 +281,3 @@ export function Cart() {
     </div>
   );
 }
-

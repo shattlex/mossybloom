@@ -145,7 +145,24 @@ export function BouquetBuilder() {
         <p className="text-stone-500 max-w-md">Соберите индивидуальную композицию, добавьте открытку и упаковку, затем отправьте в корзину.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 xl:gap-16">
+      <div className="md:hidden fixed left-4 right-4 top-[88px] z-40 rounded-2xl border border-stone-200 bg-white/95 backdrop-blur px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-widest text-stone-500">Ваш букет</p>
+            <p className="text-sm text-stone-900 mt-1">{flowerCount} шт • {bouquetPrice.toLocaleString('ru-RU')} ₽</p>
+          </div>
+          <button
+            onClick={addBouquetToCart}
+            disabled={selectedFlowers.length === 0}
+            className="inline-flex items-center gap-2 rounded-xl bg-stone-900 px-3 py-2 text-[11px] tracking-widest uppercase font-medium text-white disabled:opacity-60"
+          >
+            <ShoppingBag size={14} />
+            В корзину
+          </button>
+        </div>
+      </div>
+
+      <div className="h-20 md:hidden" />      <div className="flex flex-col xl:grid xl:grid-cols-12 gap-10 xl:gap-16">
         <section className="order-2 xl:order-1 xl:col-span-8 space-y-8">
           <div className="flex flex-wrap gap-2">
             {colors.map((color) => (
@@ -209,7 +226,7 @@ export function BouquetBuilder() {
         </section>
 
         <aside className="order-1 xl:order-2 xl:col-span-4">
-          <div className="bg-white p-8 rounded-[2rem] border border-stone-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] xl:sticky xl:top-32 space-y-6">
+          <div className="bg-white p-8 rounded-[2rem] border border-stone-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] sticky top-[88px] z-20 xl:top-32 space-y-6">
             <h2 className="text-3xl font-serif text-stone-900">Ваш букет</h2>
 
             <input
@@ -278,4 +295,7 @@ export function BouquetBuilder() {
     </div>
   );
 }
+
+
+
 
