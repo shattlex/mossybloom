@@ -162,7 +162,9 @@ export function BouquetBuilder() {
         </div>
       </div>
 
-      <div className="h-20 md:hidden" />      <div className="flex flex-col xl:grid xl:grid-cols-12 gap-10 xl:gap-16">
+      <div className="h-20 md:hidden" />
+
+      <div className="flex flex-col xl:grid xl:grid-cols-12 gap-10 xl:gap-16">
         <section className="order-2 xl:order-1 xl:col-span-8 space-y-8">
           <div className="flex flex-wrap gap-2">
             {colors.map((color) => (
@@ -226,7 +228,7 @@ export function BouquetBuilder() {
         </section>
 
         <aside className="order-1 xl:order-2 xl:col-span-4">
-          <div className="bg-white p-8 rounded-[2rem] border border-stone-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] sticky top-[88px] z-20 xl:top-32 space-y-6">
+          <div className="bg-white p-8 rounded-[2rem] border border-stone-100 shadow-[0_20px_60px_rgba(0,0,0,0.04)] sticky top-[88px] z-20 xl:top-32 space-y-6 xl:max-h-[calc(100vh-10rem)] xl:overflow-y-auto">
             <h2 className="text-3xl font-serif text-stone-900">Ваш букет</h2>
 
             <input
@@ -284,7 +286,7 @@ export function BouquetBuilder() {
             <button
               onClick={addBouquetToCart}
               disabled={selectedFlowers.length === 0}
-              className="w-full bg-stone-900 text-white rounded-xl py-4 text-[12px] tracking-[0.2em] uppercase font-medium hover:bg-[#C2958B] transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full bg-stone-900 text-white rounded-xl py-4 text-[12px] tracking-[0.2em] uppercase font-medium hover:bg-[#C2958B] transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 xl:sticky xl:bottom-0 xl:z-10"
             >
               <ShoppingBag size={16} />
               Добавить в корзину
@@ -295,6 +297,7 @@ export function BouquetBuilder() {
     </div>
   );
 }
+
 
 
 
