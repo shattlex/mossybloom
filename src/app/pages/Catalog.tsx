@@ -1,6 +1,6 @@
-﻿import { Heart, SlidersHorizontal } from "lucide-react";
+﻿import { Check, Heart, SlidersHorizontal } from "lucide-react";
 import { Link, useSearchParams } from "react-router";
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { categories, type Product as LegacyProduct } from "../data";
 import { getProducts } from "../data/products";
 import { useCart } from "../context/CartContext";
@@ -12,6 +12,8 @@ export function Catalog() {
   const products = useMemo(() => getProducts(), []);
   const { addToCart } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const [recentlyAddedProductId, setRecentlyAddedProductId] = useState<string | null>(null);
+  const resetTimerRef = useRef<number | null>(null);
 
   const toLegacyProduct = (product: (typeof products)[number]): LegacyProduct => ({
     id: product.id,
@@ -28,6 +30,23 @@ export function Catalog() {
     selectedCategory === "all"
       ? products
       : products.filter((product) => String(product.category || "").toLowerCase() === selectedCategory);
+
+  const handleAddToCart = (product: (typeof products)[number]) => {
+    const firstAvailableSize = product.sizes.find((size) => size.available !== false)?.value ?? product.sizes[0]?.value;
+    if (!firstAvailableSize) return;
+
+    addToCart(toLegacyProduct(product), firstAvailableSize);
+    setRecentlyAddedProductId(product.id);
+
+    if (resetTimerRef.current) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+
+    resetTimerRef.current = window.setTimeout(() => {
+      setRecentlyAddedProductId(null);
+      resetTimerRef.current = null;
+    }, 900);
+  };
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-12 py-12 w-full flex-1 min-h-screen">
@@ -70,6 +89,7 @@ export function Catalog() {
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-12">
             {filteredProducts.map((product, index) => {
               const favorite = isFavorite(product.id);
+              const isRecentlyAdded = recentlyAddedProductId === product.id;
 
               return (
                 <div
@@ -108,14 +128,15 @@ export function Catalog() {
 
                     <button
                       type="button"
-                      onClick={() => {
-                        const firstAvailableSize = product.sizes.find((size) => size.available !== false)?.value ?? product.sizes[0]?.value;
-                        if (!firstAvailableSize) return;
-                        addToCart(toLegacyProduct(product), firstAvailableSize);
-                      }}
-                      className="bg-stone-900 text-white py-3 rounded-xl text-[13px] font-medium tracking-widest uppercase hover:bg-[#C2958B] transition-all duration-300 shadow-md"
+                      onClick={() => handleAddToCart(product)}
+                      className={`py-3 rounded-xl text-[13px] font-medium tracking-widest uppercase transition-all duration-300 shadow-md inline-flex items-center justify-center gap-2 ${
+                        isRecentlyAdded
+                          ? "bg-emerald-600 text-white scale-[1.02]"
+                          : "bg-stone-900 text-white hover:bg-[#C2958B]"
+                      }`}
                     >
-                      В корзину
+                      {isRecentlyAdded ? <Check className="h-4 w-4" /> : null}
+                      {isRecentlyAdded ? "Добавлено" : "В корзину"}
                     </button>
                   </div>
                 </div>
@@ -133,4 +154,3 @@ export function Catalog() {
     </div>
   );
 }
-

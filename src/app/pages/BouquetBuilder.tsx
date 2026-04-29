@@ -1,5 +1,5 @@
-﻿import { useMemo, useState } from 'react';
-import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+﻿import { useMemo, useRef, useState } from 'react';
+import { Check, Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { OrderExtrasFields } from '../components/OrderExtrasFields';
 import { useCart } from '../context/CartContext';
@@ -45,11 +45,21 @@ export function BouquetBuilder() {
   const [selectedColor, setSelectedColor] = useState<(typeof colors)[number]['id']>('all');
   const [bouquetName, setBouquetName] = useState('');
   const [selectedFlowers, setSelectedFlowers] = useState<SelectedFlower[]>([]);
+  const [recentlyAddedFlowerId, setRecentlyAddedFlowerId] = useState<string | null>(null);
+  const resetAddedTimerRef = useRef<number | null>(null);
 
   const filteredFlowers = useMemo(() => {
     if (selectedColor === 'all') return flowerCatalog;
     return flowerCatalog.filter((flower) => flower.color === selectedColor);
   }, [selectedColor]);
+
+  const selectedQuantityById = useMemo(
+    () => selectedFlowers.reduce<Record<string, number>>((acc, flower) => {
+      acc[flower.id] = flower.quantity;
+      return acc;
+    }, {}),
+    [selectedFlowers]
+  );
 
   const flowerCount = useMemo(
     () => selectedFlowers.reduce((sum, flower) => sum + flower.quantity, 0),
@@ -71,6 +81,15 @@ export function BouquetBuilder() {
       }
       return [...prev, { ...flower, quantity: 1 }];
     });
+
+    setRecentlyAddedFlowerId(flower.id);
+    if (resetAddedTimerRef.current) {
+      window.clearTimeout(resetAddedTimerRef.current);
+    }
+    resetAddedTimerRef.current = window.setTimeout(() => {
+      setRecentlyAddedFlowerId(null);
+      resetAddedTimerRef.current = null;
+    }, 700);
   }
 
   function changeQuantity(flowerId: string, nextQuantity: number) {
@@ -145,27 +164,47 @@ export function BouquetBuilder() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            {filteredFlowers.map((flower, index) => (
-              <button
-                key={flower.id}
-                onClick={() => addFlower(flower)}
-                className="group text-left p-4 md:p-5 bg-transparent border border-transparent rounded-2xl hover:bg-white hover:border-stone-100 hover:shadow-[0_20px_40px_rgba(0,0,0,0.04)] transition-all duration-500"
-              >
-                <div className="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-4">
-                  <img
-                    src={flower.image}
-                    alt={flower.name}
-                    loading={index < 8 ? 'eager' : 'lazy'}
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.5s] ease-[cubic-bezier(0.25,1,0.5,1)]"
-                  />
-                </div>
-                <div className="px-2">
-                  <p className="font-medium text-stone-900">{flower.name}</p>
-                  <p className="text-sm text-stone-500 mt-1">{flower.price.toLocaleString('ru-RU')} ₽ / шт</p>
-                </div>
-              </button>
-            ))}
+            {filteredFlowers.map((flower, index) => {
+              const selectedQuantity = selectedQuantityById[flower.id] ?? 0;
+              const isSelected = selectedQuantity > 0;
+              const isRecentlyAdded = recentlyAddedFlowerId === flower.id;
+
+              return (
+                <button
+                  key={flower.id}
+                  onClick={() => addFlower(flower)}
+                  className={`group relative text-left p-4 md:p-5 rounded-2xl transition-all duration-300 border ${
+                    isSelected
+                      ? 'bg-white border-[#C2958B] shadow-[0_12px_30px_rgba(194,149,139,0.22)]'
+                      : 'bg-transparent border-transparent hover:bg-white hover:border-stone-100 hover:shadow-[0_20px_40px_rgba(0,0,0,0.04)]'
+                  } ${isRecentlyAdded ? 'scale-[1.02]' : ''}`}
+                >
+                  {isSelected && (
+                    <span className="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-stone-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm">
+                      <Check className="h-3.5 w-3.5" />
+                      x{selectedQuantity}
+                    </span>
+                  )}
+
+                  <div className="aspect-square bg-stone-100 rounded-xl overflow-hidden mb-4">
+                    <img
+                      src={flower.image}
+                      alt={flower.name}
+                      loading={index < 8 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[1.2s] ease-[cubic-bezier(0.25,1,0.5,1)]"
+                    />
+                  </div>
+                  <div className="px-2">
+                    <p className="font-medium text-stone-900">{flower.name}</p>
+                    <p className="text-sm text-stone-500 mt-1">{flower.price.toLocaleString('ru-RU')} ₽ / шт</p>
+                    <p className={`text-xs mt-2 transition-colors ${isSelected ? 'text-[#C2958B] font-medium' : 'text-stone-400'}`}>
+                      {isSelected ? 'Выбрано в букет' : 'Нажмите, чтобы добавить'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
